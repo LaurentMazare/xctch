@@ -26,4 +26,8 @@ impl<T: crate::WithScalarType> Tensor<T> {
     pub fn nbytes(&self) -> usize {
         self.with_tensor(|v| v.nbytes())
     }
+
+    pub fn as_evalue(&mut self) -> crate::EValue {
+        self.with_tensor_mut(|v| safe::EValue::from_tensor(v))
+    }
 }

@@ -2,14 +2,11 @@ use anyhow::Result;
 
 fn main() -> Result<()> {
     xctch::et_pal_init();
-
-    use xctch_sys::safe;
-    unsafe { xctch_sys::et_pal_init() };
     let program = xctch::Program::from_file("/tmp/model.pte")?;
     let mut method = program.method("forward")?;
     let mut tensor = xctch::Tensor::from_data(vec![1.23f32]);
     println!("{}", tensor.nbytes());
-    let evalue = tensor.with_tensor_mut(|v| safe::EValue::from_tensor(v));
+    let evalue = tensor.as_evalue();
     method.set_input(&evalue, 0)?;
     method.set_input(&evalue, 1)?;
     unsafe { method.execute()? };
