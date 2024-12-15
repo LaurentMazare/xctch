@@ -45,7 +45,7 @@ impl ScalarType {
     }
 }
 
-pub trait WithScalarType {
+pub trait WithScalarType: 'static + Copy {
     const ST: ScalarType;
 }
 

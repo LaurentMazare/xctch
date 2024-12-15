@@ -1,15 +1,19 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    xctch::et_pal_init();
-
     use xctch_sys::safe;
+    println!("hello world!");
     unsafe { xctch_sys::et_pal_init() };
-    let program = xctch::Program::from_file("/tmp/model.pte")?;
-    let mut method = program.method("forward")?;
-    let mut tensor = xctch::Tensor::from_data(vec![1.23f32]);
+    let mut fdl = safe::FileDataLoader::new("/tmp/model.pte")?;
+    let program = safe::Program::load(&mut fdl)?;
+    let method_meta = program.method_meta("forward")?;
+    let mut mgr = method_meta.memory_manager();
+    let mut method = program.method("forward", &mut mgr)?;
+    let mut data = vec![1.23f32];
+    let mut tensor_impl = safe::TensorImpl::from_data(&mut data);
+    let mut tensor = safe::Tensor::new(&mut tensor_impl);
     println!("{}", tensor.nbytes());
-    let evalue = tensor.with_tensor_mut(|v| safe::EValue::from_tensor(v));
+    let evalue = safe::EValue::from_tensor(&mut tensor);
     method.set_input(&evalue, 0)?;
     method.set_input(&evalue, 1)?;
     unsafe { method.execute()? };
