@@ -197,6 +197,21 @@ impl<'a> Tensor<'a> {
     pub fn dim(&self) -> usize {
         self.inner.dim() as usize
     }
+
+    pub fn scalar_type(&self) -> crate::ScalarType {
+        let st = ffi::tensor_scalar_type(&self.inner);
+        crate::ScalarType::from_c_int(st).unwrap()
+    }
+
+    pub fn as_slice<T: crate::WithScalarType>(&self) -> Option<&[T]> {
+        if self.scalar_type() != T::ST {
+            return None;
+        }
+        let ptr = self.inner.const_data_ptr();
+        let numel = self.numel();
+        let data = unsafe { std::slice::from_raw_parts(ptr as *const T, numel) };
+        Some(data)
+    }
 }
 
 pub struct EValue<'a> {
@@ -235,5 +250,34 @@ pub struct TensorRef<'a> {
 impl TensorRef<'_> {
     pub fn const_data_ptr(&self) -> *const ffi::c_void {
         self.inner.const_data_ptr()
+    }
+
+    pub fn nbytes(&self) -> usize {
+        self.inner.nbytes()
+    }
+
+    pub fn numel(&self) -> usize {
+        self.inner.numel() as usize
+    }
+
+    pub fn dim(&self) -> usize {
+        self.inner.dim() as usize
+    }
+
+    pub fn scalar_type(&self) -> crate::ScalarType {
+        let st = ffi::tensor_scalar_type(&self.inner);
+        crate::ScalarType::from_c_int(st).unwrap()
+    }
+
+    pub fn as_slice<T: crate::WithScalarType>(&self) -> Option<&[T]> {
+        if self.scalar_type() != T::ST {
+            return None;
+        }
+        let ptr = self.inner.const_data_ptr();
+        let numel = self.numel();
+        // TODO: This expects the pointer to be on the host, check that it's always
+        // the case.
+        let data = unsafe { std::slice::from_raw_parts(ptr as *const T, numel) };
+        Some(data)
     }
 }
