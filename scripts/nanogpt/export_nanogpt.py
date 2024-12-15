@@ -44,10 +44,10 @@ with torch.nn.attention.sdpa_kernel([SDPBackend.MATH]), torch.no_grad():
 # Convert the model into a runnable ExecuTorch program.
 # To be further lowered to Xnnpack backend, `traced_model` needs xnnpack-specific edge compile config
 edge_config = get_xnnpack_edge_compile_config()
-edge_manager = to_edge(traced_model) # , compile_config=edge_config)
+edge_manager = to_edge(traced_model, compile_config=edge_config)
 
 # Delegate exported model to Xnnpack backend by invoking `to_backend` function with Xnnpack partitioner.
-# edge_manager = edge_manager.to_backend(XnnpackPartitioner())
+edge_manager = edge_manager.to_backend(XnnpackPartitioner())
 et_program = edge_manager.to_executorch()
 
 # Save the Xnnpack-delegated ExecuTorch program to a file.

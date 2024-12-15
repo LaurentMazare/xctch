@@ -18,4 +18,16 @@ fn main() {
     println!("cargo:rustc-link-lib=static:+whole-archive=extension_data_loader");
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_ops_lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_kernels");
+
+    // XNNPACK
+    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack");
+    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/XNNPACK");
+    println!(
+        "cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/pthreadpool"
+    );
+    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/cpuinfo");
+    println!("cargo:rustc-link-lib=static:+whole-archive=xnnpack_backend");
+    println!("cargo:rustc-link-lib=static:+whole-archive=XNNPACK");
+    println!("cargo:rustc-link-lib=static:+whole-archive=pthreadpool");
+    println!("cargo:rustc-link-lib=static:+whole-archive=cpuinfo");
 }

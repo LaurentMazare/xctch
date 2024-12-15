@@ -35,5 +35,6 @@ fn main() -> Result<()> {
         let _ = std::io::stdout().flush();
         tokens.push(token as i64)
     }
+    println!();
     Ok(())
 }

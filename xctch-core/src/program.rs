@@ -10,6 +10,8 @@ impl Program {
         let p = p.as_ref();
         let mut fdl = safe::FileDataLoader::new(p).map_err(|v| v.with_path(p))?;
         let program = safe::Program::load(&mut fdl).map_err(|v| v.with_path(p))?;
+        // TODO: Fix the memory leak but still ensure that fdl is kept alive.
+        Box::leak(Box::new(fdl));
         Ok(Self { inner: program })
     }
 
