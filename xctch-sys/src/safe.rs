@@ -265,7 +265,7 @@ impl TensorRef<'_> {
     }
 
     pub fn scalar_type(&self) -> crate::ScalarType {
-        let st = ffi::tensor_scalar_type(&self.inner);
+        let st = ffi::tensor_scalar_type(self.inner);
         crate::ScalarType::from_c_int(st).unwrap()
     }
 

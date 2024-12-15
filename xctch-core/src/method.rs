@@ -1,6 +1,7 @@
 use crate::Result;
 use xctch_sys::safe;
 
+#[allow(unused)]
 pub struct Method {
     pub(crate) method: xctch_sys::safe::Method,
     pub(crate) meta: xctch_sys::safe::MethodMeta,
@@ -12,6 +13,9 @@ impl Method {
         self.method.set_input(input, idx)
     }
 
+    /// # Safety
+    ///
+    /// The inputs that have been added via `set_input` must be still alive.
     pub unsafe fn execute(&mut self) -> Result<()> {
         self.method.execute()
     }

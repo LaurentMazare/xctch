@@ -4,7 +4,7 @@ fn main() -> Result<()> {
     use xctch_sys::safe;
     println!("hello world!");
     unsafe { xctch_sys::et_pal_init() };
-    let mut fdl = safe::FileDataLoader::new("/tmp/model.pte")?;
+    let mut fdl = safe::FileDataLoader::new("xctch-core/tests/model.pte")?;
     let program = safe::Program::load(&mut fdl)?;
     let method_meta = program.method_meta("forward")?;
     let mut mgr = method_meta.memory_manager();

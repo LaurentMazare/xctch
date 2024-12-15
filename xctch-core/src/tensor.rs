@@ -28,6 +28,6 @@ impl<T: crate::WithScalarType> Tensor<T> {
     }
 
     pub fn as_evalue(&mut self) -> crate::EValue {
-        self.with_tensor_mut(|v| safe::EValue::from_tensor(v))
+        self.with_tensor_mut(safe::EValue::from_tensor)
     }
 }

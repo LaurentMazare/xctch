@@ -2,7 +2,7 @@ use anyhow::Result;
 
 fn main() -> Result<()> {
     xctch::et_pal_init();
-    let program = xctch::Program::from_file("/tmp/model.pte")?;
+    let program = xctch::Program::from_file("xctch-core/tests/model.pte")?;
     let mut method = program.method("forward")?;
     let mut tensor = xctch::Tensor::from_data(vec![1.23f32]);
     println!("{}", tensor.nbytes());

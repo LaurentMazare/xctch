@@ -7,8 +7,9 @@ pub struct Program {
 
 impl Program {
     pub fn from_file<P: AsRef<std::path::Path>>(p: P) -> Result<Self> {
-        let mut fdl = safe::FileDataLoader::new(p)?;
-        let program = safe::Program::load(&mut fdl)?;
+        let p = p.as_ref();
+        let mut fdl = safe::FileDataLoader::new(p).map_err(|v| v.with_path(p))?;
+        let program = safe::Program::load(&mut fdl).map_err(|v| v.with_path(p))?;
         Ok(Self { inner: program })
     }
 
