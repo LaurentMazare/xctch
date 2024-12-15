@@ -23,6 +23,22 @@ impl<T: crate::WithScalarType> Tensor<T> {
         .build()
     }
 
+    pub fn from_data_with_dims(data: Vec<T>, dims: &[usize]) -> crate::Result<Self> {
+        let numel = dims.iter().product::<usize>();
+        if numel != data.len() {
+            crate::bail!("unexpected number of elements {} for dims {dims:?}", data.len())
+        }
+        let t = TensorBuilder {
+            data,
+            imp_builder: |v: &mut Vec<T>| {
+                safe::TensorImpl::from_data_with_dims(v.as_mut_slice(), dims).unwrap()
+            },
+            tensor_builder: |v: &mut safe::TensorImpl| safe::Tensor::new(v),
+        }
+        .build();
+        Ok(t)
+    }
+
     pub fn nbytes(&self) -> usize {
         self.with_tensor(|v| v.nbytes())
     }

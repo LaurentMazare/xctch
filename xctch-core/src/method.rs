@@ -23,4 +23,12 @@ impl Method {
     pub fn get_output(&self, idx: usize) -> safe::EValueRef<'_> {
         self.method.get_output(idx)
     }
+
+    pub fn inputs_size(&self) -> usize {
+        self.method.inputs_size()
+    }
+
+    pub fn outputs_size(&self) -> usize {
+        self.method.outputs_size()
+    }
 }

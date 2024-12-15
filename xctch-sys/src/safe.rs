@@ -173,6 +173,26 @@ impl<'a> TensorImpl<'a> {
         };
         Self { inner: tensor_impl, dims, _marker: std::marker::PhantomData }
     }
+
+    pub fn from_data_with_dims<T: crate::scalar_type::WithScalarType>(
+        data: &mut [T],
+        dims: &[usize],
+    ) -> Result<Self> {
+        let numel = dims.iter().product::<usize>();
+        if numel != data.len() {
+            crate::bail!("unexpected number of elements {} for dims {dims:?}", data.len())
+        }
+        let mut dims = dims.iter().map(|v| *v as i32).collect::<Vec<_>>();
+        let tensor_impl = unsafe {
+            ffi::tensor_impl(
+                T::ST.c_int(),
+                dims.len() as u32,
+                dims.as_mut_ptr(),
+                data.as_mut_ptr() as *mut u8,
+            )
+        };
+        Ok(Self { inner: tensor_impl, dims, _marker: std::marker::PhantomData })
+    }
 }
 
 pub struct Tensor<'a> {
