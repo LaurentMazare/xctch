@@ -1,0 +1,18 @@
+[package]
+name = "xctch-sys"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+cxx = { workspace = true }
+half = { workspace = true }
+libc = { workspace = true }
+thiserror = { workspace = true }
+
+[build-dependencies]
+cxx-build = { workspace = true }

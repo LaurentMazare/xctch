@@ -1,0 +1,26 @@
+[workspace]
+members = [
+    "xctch-core",
+    "xctch-sys",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT/Apache-2.0"
+description = "Bindings for executorch"
+repository = "https://github.com/LaurentMazare/xctch"
+keywords = ["blas", "tensor", "machine-learning"]
+categories = ["science"]
+
+
+[workspace.dependencies]
+anyhow = { version = "1", features = ["backtrace"] }
+cxx = "1.0"
+cxx-build = "1.0"
+half = { version = "2.3.1", features = ["num-traits"] }
+libc = "0.2.168"
+num-traits = "0.2.15"
+thiserror = "2.0.7"
+xctch-sys = { path = "xctch-sys", version = "0.1.0" }
