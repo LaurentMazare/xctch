@@ -17,3 +17,4 @@ scripts/nanogpt/model.py
 __pycache__
 *.swp
 nanogpt.pte
+llama*.pte

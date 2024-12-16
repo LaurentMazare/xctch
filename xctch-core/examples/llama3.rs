@@ -23,7 +23,7 @@ fn main() -> Result<()> {
     xctch::et_pal_init();
     let tokenizer = Tokenizer::load("scripts/nanogpt/vocab.json")?;
 
-    let program = xctch::Program::from_file("scripts/nanogpt/nanogpt.pte")?;
+    let program = xctch::Program::from_file("llama3_2.pte")?;
     let mut method = program.method("forward")?;
     println!("loaded method, inputs {}, outputs {}", method.inputs_size(), method.outputs_size());
     for idx in 0..method.outputs_size() {
