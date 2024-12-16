@@ -50,3 +50,13 @@ impl Tag {
         }
     }
 }
+
+pub enum EValue<'a> {
+    None,
+    Tensor(crate::safe::TensorRef<'a>),
+    String(String),
+    Double(f64),
+    Int(i64),
+    Bool(bool),
+    Unsupported(Tag),
+}

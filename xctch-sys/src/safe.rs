@@ -1,4 +1,4 @@
-use crate::{ffi, Error, Result};
+use crate::{ffi, Error, Result, Tag};
 
 pub struct FileDataLoader {
     inner: cxx::UniquePtr<ffi::FileDataLoader>,
@@ -287,8 +287,23 @@ impl EValueRef<'_> {
         self.inner.isScalar()
     }
 
-    pub fn tag(&self) -> crate::Tag {
-        crate::Tag::from_c_int(ffi::evalue_tag(self.inner)).unwrap()
+    pub fn tag(&self) -> Tag {
+        Tag::from_c_int(ffi::evalue_tag(self.inner)).unwrap()
+    }
+
+    pub fn as_evalue(&self) -> crate::EValue {
+        use crate::EValue as E;
+        match self.tag() {
+            Tag::None => E::None,
+            Tag::Tensor => {
+                let tensor_ref = TensorRef { inner: ffi::evalue_to_tensor(self.inner) };
+                E::Tensor(tensor_ref)
+            }
+            Tag::Double => E::Double(self.inner.toDouble()),
+            Tag::Int => E::Int(self.inner.toInt()),
+            Tag::Bool => E::Bool(self.inner.toBool()),
+            tag => E::Unsupported(tag),
+        }
     }
 
     pub fn as_tensor(&self) -> Option<TensorRef> {
