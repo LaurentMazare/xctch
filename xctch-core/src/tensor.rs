@@ -1,39 +1,50 @@
 use xctch_sys::safe;
 
-// This requires ouroboros 0.17 and is not compatible with 0.18.
+#[ouroboros::self_referencing]
+pub struct TensorImpl<T: crate::WithScalarType> {
+    data: Vec<T>,
+    #[borrows(mut data)]
+    #[covariant]
+    imp: safe::TensorImpl<'this>,
+}
+
+// Trying to have all three fields data, imp, and tensor, in the same struct doesn't seem
+// to work with ouroboros 0.18 (but was fine with 0.17) so we split data and imp in the
+// TensorImpl type.
 // See https://github.com/someguynamedjosh/ouroboros/issues/100
 #[ouroboros::self_referencing]
 pub struct Tensor<T: crate::WithScalarType> {
-    data: Vec<T>,
-    #[borrows(mut data)]
-    #[not_covariant]
-    imp: safe::TensorImpl<'this>,
+    imp: TensorImpl<T>,
     #[borrows(mut imp)]
-    #[not_covariant]
+    #[covariant]
     pub tensor: safe::Tensor<'this>,
 }
 
 impl<T: crate::WithScalarType> Tensor<T> {
     pub fn from_data(data: Vec<T>) -> Self {
-        TensorBuilder {
+        let imp = TensorImplBuilder {
             data,
             imp_builder: |v: &mut Vec<T>| safe::TensorImpl::from_data(v.as_mut_slice()),
-            tensor_builder: |v: &mut safe::TensorImpl| safe::Tensor::new(v),
+        }
+        .build();
+        TensorBuilder {
+            imp,
+            tensor_builder: |v: &mut TensorImpl<T>| v.with_imp_mut(safe::Tensor::new),
         }
         .build()
     }
 
     pub fn from_data_with_dims(data: Vec<T>, dims: &[usize]) -> crate::Result<Self> {
-        let numel = dims.iter().product::<usize>();
-        if numel != data.len() {
-            crate::bail!("unexpected number of elements {} for dims {dims:?}", data.len())
-        }
-        let t = TensorBuilder {
+        let imp = TensorImplTryBuilder {
             data,
             imp_builder: |v: &mut Vec<T>| {
-                safe::TensorImpl::from_data_with_dims(v.as_mut_slice(), dims).unwrap()
+                safe::TensorImpl::from_data_with_dims(v.as_mut_slice(), dims)
             },
-            tensor_builder: |v: &mut safe::TensorImpl| safe::Tensor::new(v),
+        }
+        .try_build()?;
+        let t = TensorBuilder {
+            imp,
+            tensor_builder: |v: &mut TensorImpl<T>| v.with_imp_mut(safe::Tensor::new),
         }
         .build();
         Ok(t)
