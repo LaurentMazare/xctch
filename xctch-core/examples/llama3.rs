@@ -33,16 +33,19 @@ fn main() -> Result<()> {
     for &token in tokens.iter() {
         print!("{}", tokenizer.token_str(token as usize));
     }
-    for _ in 0..20 {
+    for idx in 0..20 {
         let tokens_len = tokens.len();
         let mut tensor = xctch::Tensor::from_data_with_dims(tokens.clone(), &[1, tokens_len])?;
         let evalue = tensor.as_evalue();
         method.set_input(&evalue, 0)?;
+        let mut tensor_pos = xctch::Tensor::from_data_with_dims(vec![idx as i64], &[1])?;
+        let evalue_pos = tensor_pos.as_evalue();
+        method.set_input(&evalue_pos, 1)?;
         // TODO: Add a version with KV cache.
         unsafe { method.execute()? };
         let logits = method.get_output(0);
         let logits = logits.as_tensor().unwrap();
-        let logits = logits.as_slice::<f32>().unwrap();
+        let logits = logits.as_slice::<half::bf16>().unwrap();
         // TODO: softmax + sampling
         let token = logits.iter().enumerate().max_by(|&(_, a), &(_, b)| a.total_cmp(b)).unwrap().0;
         print!("{}", tokenizer.token_str(token as usize));
