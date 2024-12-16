@@ -12,6 +12,9 @@ fn main() -> Result<()> {
     let program = xctch::Program::from_file("scripts/nanogpt/nanogpt.pte")?;
     let mut method = program.method("forward")?;
     println!("loaded method, inputs {}, outputs {}", method.inputs_size(), method.outputs_size());
+    for idx in 0..method.outputs_size() {
+        println!("  out {idx}: {:?}", method.get_output(idx).tag())
+    }
     let mut tokens = vec![18435i64];
     for &token in tokens.iter() {
         let token = token as usize;
