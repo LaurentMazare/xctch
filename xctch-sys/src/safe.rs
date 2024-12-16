@@ -1,4 +1,5 @@
 use crate::{ffi, Error, Result, Tag};
+use std::marker::PhantomData;
 
 pub struct FileDataLoader {
     inner: cxx::UniquePtr<ffi::FileDataLoader>,
@@ -83,15 +84,16 @@ impl FileDataLoader {
     }
 }
 
-pub struct Program {
+pub struct Program<'a> {
     inner: cxx::UniquePtr<ffi::Program>,
+    _marker: PhantomData<&'a ()>,
 }
 
-impl Program {
-    pub fn load(fdl: &mut FileDataLoader) -> Result<Self> {
+impl<'a> Program<'a> {
+    pub fn load(fdl: &'a mut FileDataLoader) -> Result<Self> {
         let mut program = ffi::program_load(fdl.inner.as_mut().unwrap());
         let program = to_result(&mut program)?;
-        Ok(Self { inner: program })
+        Ok(Self { inner: program, _marker: PhantomData })
     }
 
     pub fn method(&self, name: &str, mgr: &mut MemoryManager) -> Result<Method> {
@@ -109,6 +111,7 @@ impl Program {
     }
 }
 
+// TODO: Should this have a lifetime related to the original program?
 pub struct MethodMeta {
     inner: cxx::UniquePtr<ffi::MethodMeta>,
 }
@@ -120,6 +123,7 @@ impl MethodMeta {
     }
 }
 
+// TODO: Should this have a lifetime related to the original program?
 pub struct Method {
     inner: cxx::UniquePtr<ffi::Method>,
 }
@@ -162,7 +166,7 @@ pub struct TensorImpl<'a> {
     inner: cxx::UniquePtr<ffi::TensorImpl>,
     #[allow(unused)]
     dims: Vec<i32>,
-    _marker: std::marker::PhantomData<&'a ()>,
+    _marker: PhantomData<&'a ()>,
 }
 
 impl TensorImpl<'_> {
@@ -171,7 +175,7 @@ impl TensorImpl<'_> {
         let tensor_impl = unsafe {
             ffi::tensor_impl(T::ST.c_int(), 1, dims.as_mut_ptr(), data.as_mut_ptr() as *mut u8)
         };
-        Self { inner: tensor_impl, dims, _marker: std::marker::PhantomData }
+        Self { inner: tensor_impl, dims, _marker: PhantomData }
     }
 
     pub fn from_data_with_dims<T: crate::scalar_type::WithScalarType>(
@@ -191,19 +195,19 @@ impl TensorImpl<'_> {
                 data.as_mut_ptr() as *mut u8,
             )
         };
-        Ok(Self { inner: tensor_impl, dims, _marker: std::marker::PhantomData })
+        Ok(Self { inner: tensor_impl, dims, _marker: PhantomData })
     }
 }
 
 pub struct Tensor<'a> {
     inner: cxx::UniquePtr<ffi::Tensor>,
-    _marker: std::marker::PhantomData<&'a ()>,
+    _marker: PhantomData<&'a ()>,
 }
 
 impl<'a> Tensor<'a> {
     pub fn new(impl_: &'a mut TensorImpl) -> Self {
         let tensor = ffi::tensor_new(impl_.inner.as_mut().unwrap());
-        Self { inner: tensor, _marker: std::marker::PhantomData }
+        Self { inner: tensor, _marker: PhantomData }
     }
 
     pub fn nbytes(&self) -> usize {
@@ -236,13 +240,13 @@ impl<'a> Tensor<'a> {
 
 pub struct EValue<'a> {
     inner: cxx::UniquePtr<ffi::EValue>,
-    _marker: std::marker::PhantomData<&'a ()>,
+    _marker: PhantomData<&'a ()>,
 }
 
 impl EValue<'_> {
     pub fn from_tensor(tensor: &mut Tensor) -> Self {
         let evalue = ffi::evalue_from_tensor(tensor.inner.as_mut().unwrap());
-        Self { inner: evalue, _marker: std::marker::PhantomData }
+        Self { inner: evalue, _marker: PhantomData }
     }
 }
 
