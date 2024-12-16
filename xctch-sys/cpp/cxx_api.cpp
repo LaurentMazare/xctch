@@ -91,6 +91,10 @@ const Tensor& evalue_to_tensor(const EValue& e) {
   return e.toTensor();
 }
 
+uint32_t evalue_tag(const EValue& e) {
+  return static_cast<uint32_t>(e.tag);
+}
+
 std::unique_ptr<Tensor> evalue_to_tensor_move(EValue& e) {
   return std::make_unique<Tensor>(e.toTensor());
 }

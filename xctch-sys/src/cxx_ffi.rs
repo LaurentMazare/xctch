@@ -57,6 +57,7 @@ pub mod ffi {
         fn evalue_from_int(i: i64) -> UniquePtr<EValue>;
         fn evalue_from_double(f: f64) -> UniquePtr<EValue>;
         fn evalue_from_tensor(t: Pin<&mut Tensor>) -> UniquePtr<EValue>;
+        fn evalue_tag(e: &EValue) -> u32;
 
         fn program_load(loader: Pin<&mut FileDataLoader>) -> UniquePtr<ResultProgram>;
         fn program_memory_manager_for_method(m: &MethodMeta) -> UniquePtr<MemoryManager>;

@@ -165,7 +165,7 @@ pub struct TensorImpl<'a> {
     _marker: std::marker::PhantomData<&'a ()>,
 }
 
-impl<'a> TensorImpl<'a> {
+impl TensorImpl<'_> {
     pub fn from_data<T: crate::scalar_type::WithScalarType>(data: &mut [T]) -> Self {
         let mut dims = vec![data.len() as i32];
         let tensor_impl = unsafe {
@@ -239,7 +239,7 @@ pub struct EValue<'a> {
     _marker: std::marker::PhantomData<&'a ()>,
 }
 
-impl<'a> EValue<'a> {
+impl EValue<'_> {
     pub fn from_tensor(tensor: &mut Tensor) -> Self {
         let evalue = ffi::evalue_from_tensor(tensor.inner.as_mut().unwrap());
         Self { inner: evalue, _marker: std::marker::PhantomData }
@@ -253,6 +253,42 @@ pub struct EValueRef<'a> {
 impl EValueRef<'_> {
     pub fn is_tensor(&self) -> bool {
         self.inner.isTensor()
+    }
+
+    pub fn is_int(&self) -> bool {
+        self.inner.isInt()
+    }
+
+    pub fn is_none(&self) -> bool {
+        self.inner.isNone()
+    }
+
+    pub fn is_double(&self) -> bool {
+        self.inner.isDouble()
+    }
+
+    pub fn is_string(&self) -> bool {
+        self.inner.isString()
+    }
+
+    pub fn is_int_list(&self) -> bool {
+        self.inner.isIntList()
+    }
+
+    pub fn is_double_list(&self) -> bool {
+        self.inner.isDoubleList()
+    }
+
+    pub fn is_tensor_list(&self) -> bool {
+        self.inner.isTensorList()
+    }
+
+    pub fn is_scalar(&self) -> bool {
+        self.inner.isScalar()
+    }
+
+    pub fn tag(&self) -> crate::Tag {
+        crate::Tag::from_c_int(ffi::evalue_tag(self.inner)).unwrap()
     }
 
     pub fn as_tensor(&self) -> Option<TensorRef> {
