@@ -2,13 +2,13 @@ use crate::Result;
 use xctch_sys::safe;
 
 #[allow(unused)]
-pub struct Method {
-    pub(crate) method: xctch_sys::safe::Method,
-    pub(crate) meta: xctch_sys::safe::MethodMeta,
+pub struct Method<'a> {
+    pub(crate) method: xctch_sys::safe::Method<'a>,
+    pub(crate) meta: xctch_sys::safe::MethodMeta<'a>,
     pub(crate) mgr: xctch_sys::safe::MemoryManager,
 }
 
-impl Method {
+impl Method<'_> {
     pub fn set_input(&mut self, input: &safe::EValue<'_>, idx: usize) -> Result<()> {
         self.method.set_input(input, idx)
     }

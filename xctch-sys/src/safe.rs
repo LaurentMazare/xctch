@@ -100,35 +100,35 @@ impl<'a> Program<'a> {
         cxx::let_cxx_string!(name = name);
         let mut method = ffi::program_load_method(&self.inner, &name, mgr.inner.as_mut().unwrap());
         let method = to_result(&mut method)?;
-        Ok(Method { inner: method })
+        Ok(Method { inner: method, _marker: PhantomData })
     }
 
     pub fn method_meta(&self, name: &str) -> Result<MethodMeta> {
         cxx::let_cxx_string!(name = name);
         let mut method_meta = ffi::program_method_meta(&self.inner, &name);
         let method_meta = to_result(&mut method_meta)?;
-        Ok(MethodMeta { inner: method_meta })
+        Ok(MethodMeta { inner: method_meta, _marker: PhantomData })
     }
 }
 
-// TODO: Should this have a lifetime related to the original program?
-pub struct MethodMeta {
+pub struct MethodMeta<'a> {
     inner: cxx::UniquePtr<ffi::MethodMeta>,
+    _marker: PhantomData<&'a ()>,
 }
 
-impl MethodMeta {
+impl MethodMeta<'_> {
     pub fn memory_manager(&self) -> MemoryManager {
         let mgr = ffi::program_memory_manager_for_method(&self.inner);
         MemoryManager { inner: mgr }
     }
 }
 
-// TODO: Should this have a lifetime related to the original program?
-pub struct Method {
+pub struct Method<'a> {
     inner: cxx::UniquePtr<ffi::Method>,
+    _marker: PhantomData<&'a ()>,
 }
 
-impl Method {
+impl Method<'_> {
     pub fn inputs_size(&self) -> usize {
         self.inner.inputs_size()
     }
