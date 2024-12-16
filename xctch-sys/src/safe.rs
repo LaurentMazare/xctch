@@ -302,8 +302,24 @@ impl EValueRef<'_> {
             Tag::Double => E::Double(self.inner.toDouble()),
             Tag::Int => E::Int(self.inner.toInt()),
             Tag::Bool => E::Bool(self.inner.toBool()),
+            Tag::String => {
+                let len = ffi::evalue_str_len(self.inner);
+                let ptr = ffi::evalue_str_ptr(self.inner);
+                let s = unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }.to_vec();
+                E::String(s)
+            }
             tag => E::Unsupported(tag),
         }
+    }
+
+    pub fn to_string(&self) -> Option<Vec<u8>> {
+        if !self.is_string() {
+            return None;
+        }
+        let len = ffi::evalue_str_len(self.inner);
+        let ptr = ffi::evalue_str_ptr(self.inner);
+        let s = unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }.to_vec();
+        Some(s)
     }
 
     pub fn as_tensor(&self) -> Option<TensorRef> {

@@ -58,6 +58,8 @@ pub mod ffi {
         fn evalue_from_double(f: f64) -> UniquePtr<EValue>;
         fn evalue_from_tensor(t: Pin<&mut Tensor>) -> UniquePtr<EValue>;
         fn evalue_tag(e: &EValue) -> u32;
+        fn evalue_str_len(e: &EValue) -> usize;
+        fn evalue_str_ptr(e: &EValue) -> *const c_char;
 
         fn program_load(loader: Pin<&mut FileDataLoader>) -> UniquePtr<ResultProgram>;
         fn program_memory_manager_for_method(m: &MethodMeta) -> UniquePtr<MemoryManager>;

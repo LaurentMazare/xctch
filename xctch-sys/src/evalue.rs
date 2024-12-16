@@ -54,7 +54,7 @@ impl Tag {
 pub enum EValue<'a> {
     None,
     Tensor(crate::safe::TensorRef<'a>),
-    String(String),
+    String(Vec<u8>),
     Double(f64),
     Int(i64),
     Bool(bool),

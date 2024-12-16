@@ -87,6 +87,15 @@ std::unique_ptr<ResultI64> method_meta_memory_planned_buffer_size(MethodMeta con
   return std::make_unique<ResultI64>(m.memory_planned_buffer_size(idx));
 }
 
+size_t evalue_str_len(const EValue& e) {
+  // toString creates a string view so this is reasonably cheap.
+  return e.toString().length();
+}
+
+const char *evalue_str_ptr(const EValue& e) {
+  return e.toString().data();
+}
+
 const Tensor& evalue_to_tensor(const EValue& e) {
   return e.toTensor();
 }

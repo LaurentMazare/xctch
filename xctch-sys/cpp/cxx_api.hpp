@@ -38,6 +38,8 @@ std::unique_ptr<ResultI64> method_meta_memory_planned_buffer_size(MethodMeta con
 std::unique_ptr<Tensor> evalue_to_tensor_move(EValue&);
 const Tensor& evalue_to_tensor(const EValue&);
 uint32_t evalue_tag(const EValue& e);
+size_t evalue_str_len(const EValue&);
+const char *evalue_str_ptr(const EValue&);
 std::unique_ptr<EValue> evalue_from_tensor(Tensor&);
 std::unique_ptr<EValue> evalue_from_double(double);
 std::unique_ptr<EValue> evalue_from_int(int64_t);
