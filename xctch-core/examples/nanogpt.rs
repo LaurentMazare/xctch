@@ -45,7 +45,7 @@ fn main() -> Result<()> {
         let logits = logits.as_slice::<f32>().unwrap();
         // TODO: softmax + sampling
         let token = logits.iter().enumerate().max_by(|&(_, a), &(_, b)| a.total_cmp(b)).unwrap().0;
-        print!("{}", tokenizer.token_str(token as usize));
+        print!("{}", tokenizer.token_str(token));
         std::io::stdout().flush()?;
         tokens.push(token as i64)
     }
