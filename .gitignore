@@ -12,6 +12,7 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+scripts/llama3/vocab.json
 scripts/nanogpt/vocab.json
 scripts/nanogpt/model.py
 __pycache__
