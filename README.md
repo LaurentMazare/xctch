@@ -3,18 +3,20 @@
 Experimental bindings for executorch, currently compatible with version 0.4.
 
 ### Building executorch
-
+From the `executorch` directory:
 ```bash
-mkdir cmake-out
-cd cmake-out
-cmake .. \
+rm -Rf cmake-out
+cmake . \
   -DEXECUTORCH_BUILD_EXTENSION_MODULE=ON \
   -DEXECUTORCH_BUILD_EXTENSION_TENSOR=ON \
   -DEXECUTORCH_BUILD_EXTENSION_DATA_LOADER=ON \
   -DEXECUTORCH_ENABLE_LOGGING=ON \
   -DEXECUTORCH_BUILD_KERNELS_OPTIMIZED=ON \
-  -DEXECUTORCH_BUILD_XNNPACK=ON
-make -j8
+  -DCMAKE_BUILD_TYPE=Release \
+  -DEXECUTORCH_BUILD_XNNPACK=ON \
+  -DCMAKE_INSTALL_PREFIX=cmake-out \
+  -Bcmake-out
+cmake --build cmake-out -j16 --target install --config Release
 ```
 
 ### Running the nanogpt example

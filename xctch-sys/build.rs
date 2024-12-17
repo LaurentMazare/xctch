@@ -10,9 +10,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=cpp/cxx_api.hpp");
     println!("cargo:rerun-if-changed=cpp/cxx_api.cpp");
-    println!("cargo:rustc-link-search=native={exec_dir}/lib");
-    println!("cargo:rustc-link-search=native={exec_dir}/lib/kernels/portable");
-    println!("cargo:rustc-link-search=native={exec_dir}/lib/extension/data_loader");
+    println!("cargo:rustc-link-search=native={exec_dir}/cmake-out/lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=executorch");
     println!("cargo:rustc-link-lib=static:+whole-archive=executorch_no_prim_ops");
     println!("cargo:rustc-link-lib=static:+whole-archive=extension_data_loader");
@@ -20,12 +18,6 @@ fn main() {
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_kernels");
 
     // XNNPACK
-    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack");
-    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/XNNPACK");
-    println!(
-        "cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/pthreadpool"
-    );
-    println!("cargo:rustc-link-search=native={exec_dir}/lib/backends/xnnpack/third-party/cpuinfo");
     println!("cargo:rustc-link-lib=static:+whole-archive=xnnpack_backend");
     println!("cargo:rustc-link-lib=static:+whole-archive=XNNPACK");
     println!("cargo:rustc-link-lib=static:+whole-archive=pthreadpool");
