@@ -14,8 +14,10 @@ fn main() {
     println!("cargo:rustc-link-lib=static:+whole-archive=executorch");
     println!("cargo:rustc-link-lib=static:+whole-archive=executorch_no_prim_ops");
     println!("cargo:rustc-link-lib=static:+whole-archive=extension_data_loader");
-    println!("cargo:rustc-link-lib=static:+whole-archive=portable_ops_lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_kernels");
+    println!("cargo:rustc-link-lib=static:+whole-archive=eigen_blas");
+    println!("cargo:rustc-link-lib=static:+whole-archive=optimized_native_cpu_ops_lib");
+    println!("cargo:rustc-link-lib=static:+whole-archive=optimized_kernels");
 
     // XNNPACK
     println!("cargo:rustc-link-lib=static:+whole-archive=xnnpack_backend");
