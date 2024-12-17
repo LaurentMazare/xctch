@@ -29,3 +29,16 @@ curl https://huggingface.co/openai-community/gpt2/resolve/main/vocab.json -o scr
 curl https://raw.githubusercontent.com/karpathy/nanoGPT/master/model.py -o scripts/nanogpt/model.py
 python scripts/nanogpt/export_nanogpt.py
 ```
+
+### Common Issues
+
+```
+E 00:00:00.000061 executorch:operator_registry.cpp:85] Re-registering aten::add.out, from NOT_SUPPORTED
+E 00:00:00.000075 executorch:operator_registry.cpp:86] key: (null), is_fallback: true
+F 00:00:00.000076 executorch:operator_registry.cpp:106] In function register_kernels(), assert failed (false): Kernel registration failed with error 18, see error log for details.
+```
+This is caused by the portable and optimized ops being linked together in the
+final binary. These are supposed to be merged together
+[here](https://github.com/pytorch/executorch/blob/e94c2ff279e07b62928900cba572eb2fea03feb4/configurations/CMakeLists.txt#L32)
+and the binary shoud link with `optimized_native_cpu_ops_lib` rather
+than the other `.*_ops_lib` files.
