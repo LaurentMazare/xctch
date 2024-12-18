@@ -11,9 +11,10 @@ impl Tokenizer {
         self.vocab.get(&token_id).map_or("UNK", |v| v.as_str()).replace('Ġ', " ").replace("Ċ", "\n")
     }
 
-    fn load<P: AsRef<std::path::Path>>(p: P) -> Result<Self> {
+    fn load<P: AsRef<std::path::Path>>(p: P) -> xctch::Result<Self> {
         let json_data = std::fs::read_to_string(p)?;
-        let vocab: HashMap<String, usize> = serde_json::from_str(&json_data)?;
+        let vocab: HashMap<String, usize> =
+            serde_json::from_str(&json_data).map_err(xctch::Error::wrap)?;
         let vocab: HashMap<usize, String> = vocab.into_iter().map(|(k, v)| (v, k)).collect();
         Ok(Self { vocab })
     }
@@ -21,7 +22,8 @@ impl Tokenizer {
 
 fn main() -> Result<()> {
     xctch::et_pal_init();
-    let tokenizer = Tokenizer::load("scripts/llama3/vocab.json")?;
+    let vocab_path = "scripts/llama3/vocab.json";
+    let tokenizer = Tokenizer::load(vocab_path).map_err(|e| e.with_path(vocab_path))?;
 
     let program = xctch::Program::from_file("llama3_2.pte")?;
     let mut method = program.method("forward")?;
