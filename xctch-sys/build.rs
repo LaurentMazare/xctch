@@ -2,7 +2,8 @@ fn main() {
     let exec_dir = std::env::var("EXECUTORCH_DIR").expect("EXECUTORCH_DIR is not set");
 
     cxx_build::bridge("src/cxx_ffi.rs")
-        .include(format!("{exec_dir}/include"))
+        .include(format!("{exec_dir}/../"))
+        .std("c++17")
         .file("cpp/cxx_api.cpp")
         .compile("xctch-sys");
 
