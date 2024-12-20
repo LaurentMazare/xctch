@@ -43,7 +43,6 @@ fn main() -> Result<()> {
         let mut tensor_pos = xctch::Tensor::from_data_with_dims(vec![idx as i64], &[1])?;
         let evalue_pos = tensor_pos.as_evalue();
         method.set_input(&evalue_pos, 1)?;
-        // TODO: Add a version with KV cache.
         unsafe { method.execute()? };
         let logits = method.get_output(0);
         let logits = logits.as_tensor().unwrap();
