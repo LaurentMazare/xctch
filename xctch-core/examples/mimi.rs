@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let out = method.get_output(0);
     println!("out: {:?}", out.tag());
     let out = out.as_tensor().unwrap();
-    let out = out.as_slice::<f32>().unwrap();
-    println!("{:?}", &out[..10]);
+    let out = out.as_slice::<i64>().unwrap();
+    println!("{out:?}");
     Ok(())
 }
