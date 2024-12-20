@@ -1,10 +1,20 @@
 import argparse
 import torch
+from torch import nn
 from torch.export import export, ExportedProgram
 from executorch.exir import EdgeProgramManager, ExecutorchBackendConfig, to_edge
 
 from huggingface_hub import hf_hub_download
 from moshi.models import loaders
+
+
+class MimiEncoder(nn.Module):
+    def __init__(self, mimi):
+        super().__init__()
+        self.mimi = mimi
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.mimi.encode(x)
 
 
 def main():
@@ -22,14 +32,16 @@ def main():
     print("==== MIMI MODEL ====")
     print(mimi)
 
+    mimi_encoder = MimiEncoder(mimi)
+
     sample_pcm = torch.zeros((1, 1, 1920), dtype=torch.float).to(args.device)
 
     print("==== RUN MODEL ====")
-    _out = mimi.encoder(sample_pcm)
+    _out = mimi_encoder(sample_pcm)
     print(_out.shape)
 
     print("==== ATEN DIALECT ====")
-    aten_dialect: ExportedProgram = export(mimi.encoder, (sample_pcm,))
+    aten_dialect: ExportedProgram = export(mimi_encoder, (sample_pcm,))
     print(aten_dialect)
     edge_program: EdgeProgramManager = to_edge(aten_dialect)
 
