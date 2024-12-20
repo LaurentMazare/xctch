@@ -19,3 +19,5 @@ __pycache__
 *.swp
 nanogpt.pte
 llama*.pte
+mimi*.pte
+moshi*.pte
