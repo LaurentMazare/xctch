@@ -19,6 +19,9 @@ fn main() -> Result<()> {
     println!();
     unsafe { method.execute()? };
     let out = method.get_output(0);
-    println!("{:?}", out.tag());
+    println!("out: {:?}", out.tag());
+    let out = out.as_tensor().unwrap();
+    let out = out.as_slice::<f32>().unwrap();
+    println!("{:?}", &out[..10]);
     Ok(())
 }
