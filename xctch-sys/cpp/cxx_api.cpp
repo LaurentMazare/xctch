@@ -17,7 +17,7 @@ std::unique_ptr<TensorImpl> tensor_impl(int32_t scalar_type, uint32_t ndims, int
 }
 
 std::unique_ptr<Tensor> tensor_new(TensorImpl& impl) {
-  return std::make_unique<Tensor>(std::move(Tensor(&impl)));
+  return std::make_unique<Tensor>(Tensor(&impl));
 }
 
 template<typename T>
@@ -109,7 +109,7 @@ std::unique_ptr<Tensor> evalue_to_tensor_move(EValue& e) {
 }
 
 std::unique_ptr<EValue> evalue_from_tensor(Tensor& e) {
-  return std::make_unique<EValue>(std::move(EValue(std::move(e))));
+  return std::make_unique<EValue>(EValue(std::move(e)));
 }
 
 std::unique_ptr<EValue> evalue_from_double(double e) {
