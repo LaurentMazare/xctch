@@ -35,9 +35,9 @@ fn main() -> Result<()> {
     for &token in tokens.iter() {
         print!("{}", tokenizer.token_str(token as usize));
     }
-    for idx in 0..20 {
+    for idx in 0..200 {
         let tokens_len = tokens.len();
-        let mut tensor = xctch::Tensor::from_data_with_dims(tokens.clone(), &[1, tokens_len])?;
+        let mut tensor = xctch::Tensor::from_data_with_dims(vec![tokens[tokens_len - 1]], &[1, 1])?;
         let evalue = tensor.as_evalue();
         method.set_input(&evalue, 0)?;
         let mut tensor_pos = xctch::Tensor::from_data_with_dims(vec![idx as i64], &[1])?;
