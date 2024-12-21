@@ -222,6 +222,10 @@ impl<'a> Tensor<'a> {
         self.inner.dim() as usize
     }
 
+    pub fn shape(&self) -> Vec<usize> {
+        (0..self.inner.dim()).map(|i| self.inner.size(i) as usize).collect()
+    }
+
     pub fn scalar_type(&self) -> crate::ScalarType {
         let st = ffi::tensor_scalar_type(&self.inner);
         crate::ScalarType::from_c_int(st).unwrap()
@@ -353,6 +357,10 @@ impl TensorRef<'_> {
 
     pub fn dim(&self) -> usize {
         self.inner.dim() as usize
+    }
+
+    pub fn shape(&self) -> Vec<usize> {
+        (0..self.inner.dim()).map(|i| self.inner.size(i) as usize).collect()
     }
 
     pub fn scalar_type(&self) -> crate::ScalarType {

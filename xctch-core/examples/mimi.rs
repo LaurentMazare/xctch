@@ -16,7 +16,7 @@ fn main() -> Result<()> {
         let out = method.get_output(0);
         println!("out: {:?}", out.tag());
         let out = out.as_tensor().unwrap();
-        println!("{}", out.dim());
+        println!("{:?}", out.shape());
         out.as_slice::<i64>().unwrap().to_vec()
     };
     println!("{codes:?}");
@@ -31,7 +31,7 @@ fn main() -> Result<()> {
         let out = method.get_output(0);
         println!("out: {:?}", out.tag());
         let out = out.as_tensor().unwrap();
-        println!("{}", out.dim());
+        println!("{:?}", out.shape());
         out.as_slice::<f32>().unwrap().to_vec()
     };
     println!("{:?}", &pcm[..20]);
