@@ -39,7 +39,7 @@ def main():
     mimi = loaders.get_mimi(args.mimi_weight, args.device)
     print("mimi model loaded")
 
-    seq_len = 24000 * 10
+    seq_len = 24000
     mimi_encoder = MimiEncoder(mimi)
     mimi_decoder = MimiDecoder(mimi)
     sample_pcm = torch.zeros((1, 1, seq_len), dtype=torch.float).to(args.device)
