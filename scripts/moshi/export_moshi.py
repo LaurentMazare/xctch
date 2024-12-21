@@ -19,7 +19,7 @@ def main():
 
     if args.moshi_weight is None:
         args.moshi_weight = hf_hub_download(args.hf_repo, loaders.MOSHI_NAME)
-    moshi = loaders.get_moshi(args.moshi_weight, args.device)
+    moshi = loaders.get_moshi_lm(args.moshi_weight, args.device)
     print("moshi model loaded")
 
     print("running the model")
