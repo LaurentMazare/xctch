@@ -1,4 +1,4 @@
-use anyhow::Result;
+use xctch::{Context, Result};
 
 fn main() -> Result<()> {
     xctch::et_pal_init();
@@ -15,9 +15,9 @@ fn main() -> Result<()> {
         method.set_input(&evalue, 0)?;
         unsafe { method.execute()? };
         let logits = method.get_output(0);
-        let logits = logits.as_tensor().unwrap();
+        let logits = logits.as_tensor().context("not a tensor")?;
         println!("out {idx} {:?}", logits.shape());
-        let logits = logits.as_slice::<f32>().unwrap();
+        let logits = logits.as_slice::<f32>().context("expected f32")?;
         println!("  {:?}", &logits[..10]);
     }
     println!();

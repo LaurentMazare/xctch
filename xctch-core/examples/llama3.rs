@@ -1,7 +1,7 @@
 use rand::{distributions::Distribution, SeedableRng};
 use std::collections::HashMap;
 use std::io::Write;
-use xctch::{Error as E, Result};
+use xctch::{Context, Error as E, Result};
 
 pub const TEMPERATURE: f32 = 0.6;
 pub const SEED: u64 = 4242424242424242;
@@ -49,12 +49,18 @@ fn main() -> Result<()> {
         method.set_input(&evalue_pos, 1)?;
         unsafe { method.execute()? };
         let logits = method.get_output(0);
-        let logits = logits.as_tensor().unwrap();
-        let logits = logits.as_slice::<half::bf16>().unwrap();
+        let logits = logits.as_tensor().context("not a tensor")?;
+        let logits = logits.as_slice::<half::bf16>().context("expected bf16")?;
         let token = if TEMPERATURE <= 0. {
-            logits.iter().enumerate().max_by(|&(_, a), &(_, b)| a.total_cmp(b)).unwrap().0
+            logits
+                .iter()
+                .enumerate()
+                .max_by(|&(_, a), &(_, b)| a.total_cmp(b))
+                .context("empty logits")?
+                .0
         } else {
-            let max_logit = logits.iter().max_by(|&a, &b| a.total_cmp(b)).unwrap();
+            let max_logit =
+                logits.iter().max_by(|&a, &b| a.total_cmp(b)).context("empty logits")?;
             let mut sm: Vec<f32> =
                 logits.iter().map(|v| ((*v - *max_logit).to_f32() / TEMPERATURE).exp()).collect();
             let sum_sm = sm.iter().sum::<f32>();
