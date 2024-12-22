@@ -3,7 +3,7 @@ use anyhow::Result;
 fn main() -> Result<()> {
     xctch::et_pal_init();
 
-    let pcm_len = 20;
+    let pcm_len = 5;
     let pcm: Vec<f32> = (0..pcm_len).map(|v| (v as f32).cos()).collect();
 
     let program = xctch::Program::from_file("streaming_conv1d.pte")?;
