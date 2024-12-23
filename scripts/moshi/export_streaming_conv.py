@@ -30,7 +30,7 @@ class RawStreamingConv1d(nn.Conv1d):
         stride = self.stride[0]
         # Effective kernel size accounting for dilation.
         kernel = (self.kernel_size[0] - 1) * self.dilation[0] + 1
-        input = torch.cat([self._input_buf, input], dim=-1)
+        input = torch.cat([input_buf, input], dim=-1)
         _, _, T = input.shape
         # We now compute the number of full convolution frames, i.e. the frames
         # that are ready to be computed.
