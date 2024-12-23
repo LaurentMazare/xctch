@@ -45,6 +45,19 @@ class RawStreamingConv1d(nn.Conv1d):
         out = super().forward(input[..., :input_length])
         return out
 
+    def reset(self):
+        self._input_buf.fill_(0.0)
+        self._init.fill_(0.0)
+
+
+class ModelReset(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self._inner = model
+
+    def forward(self, x):
+        self._inner.reset()
+        return x
 
 def main():
     parser = argparse.ArgumentParser()
@@ -53,25 +66,29 @@ def main():
     torch.manual_seed(42)
 
     model = RawStreamingConv1d(1, 2, 3)
+    m = ModelReset(model)
     seq_len = 5
     inp_ = torch.arange(0, seq_len, 1, dtype=torch.float).reshape((1, 1, seq_len))
     inp_ = inp_.cos()
 
     print("running the conv")
-    for _ in range(3):
+    for idx in range(6):
+        print(">>>", model._init)
         sample_codes = model(inp_)
         print(sample_codes)
         print(sample_codes.shape)
+        if idx == 3:
+            m.forward(inp_)
 
-    model._input_buf.fill_(0.0)
-    # model._init.fill_(1.0)
-    aten_dialect: ExportedProgram = export(
-        model,
-        (inp_,),
-        # Dynamic shapes result in unresolvable constraints
-        # dynamic_shapes={"x": {2: Dim("t", min=1, max=240000)}},
-    )
-    edge_program: EdgeProgramManager = to_edge(aten_dialect)
+    model.reset()
+    aten_forward: ExportedProgram = export(model, (inp_,))
+    aten_reset: ExportedProgram = export(m, args=(inp_,))
+    print(aten_forward)
+    print(aten_reset)
+    edge_program: EdgeProgramManager = to_edge({
+        "forward": aten_forward,
+        "reset": aten_reset,
+    })
 
     print("exporting to executorch")
     executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
