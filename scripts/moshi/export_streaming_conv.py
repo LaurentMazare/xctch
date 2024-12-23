@@ -13,15 +13,25 @@ class RawStreamingConv1d(nn.Conv1d):
             self.stride[0] <= self.kernel_size[0]
         ), "stride must be less than kernel_size."
         kernel = (self.kernel_size[0] - 1) * self.dilation[0]
+        # Use some zeros for the initial values here as we don't
+        # seem to have control on the actual value that ends up being used.
+        # This is likely related to the following warning that executorch
+        # produces:
+        #     UserWarning: Mutation on a buffer in the model is detected.
+        #     ExecuTorch assumes buffers that are mutated in the graph have
+        #     a meaningless initial state, only the shape and dtype will be
+        #     serialized.
         self.register_buffer("_input_buf", torch.zeros((1, self.in_channels, kernel), dtype=torch.float))
+        self.register_buffer("_init", torch.zeros(1, dtype=torch.float))
 
     # Assume that the seq-len used in the forward is always the same.
     def forward(self, input: torch.Tensor) -> torch.Tensor:
+        input_buf = self._input_buf + (1.0 - self._init) * input[0, 0, 0]
         stride = self.stride[0]
         # Effective kernel size accounting for dilation.
         kernel = (self.kernel_size[0] - 1) * self.dilation[0] + 1
         input = torch.cat([self._input_buf, input], dim=-1)
-        B, C, T = input.shape
+        _, _, T = input.shape
         # We now compute the number of full convolution frames, i.e. the frames
         # that are ready to be computed.
         num_frames = max(0, (T - kernel) // stride + 1)
@@ -30,6 +40,7 @@ class RawStreamingConv1d(nn.Conv1d):
         # for each of the frame, so we know the data before `stride * num_frames`
         # will never be used again.
         self._input_buf[:] = input[..., offset:]
+        self._init.fill_(1.0)
         input_length = (num_frames - 1) * stride + kernel
         out = super().forward(input[..., :input_length])
         return out
@@ -53,6 +64,7 @@ def main():
         print(sample_codes.shape)
 
     model._input_buf.fill_(0.0)
+    # model._init.fill_(1.0)
     aten_dialect: ExportedProgram = export(
         model,
         (inp_,),
