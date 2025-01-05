@@ -1,6 +1,19 @@
 use crate::{ffi, Error, Result, Tag};
 use std::marker::PhantomData;
 
+pub struct BufferDataLoader<'a> {
+    inner: cxx::UniquePtr<ffi::BufferDataLoader>,
+    _marker: PhantomData<&'a ()>,
+}
+
+impl<'a> BufferDataLoader<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
+        let inner =
+            unsafe { ffi::buffer_data_loader_new(data.as_ptr() as *const ffi::c_void, data.len()) };
+        Self { inner, _marker: PhantomData }
+    }
+}
+
 pub struct FileDataLoader {
     inner: cxx::UniquePtr<ffi::FileDataLoader>,
 }
@@ -90,6 +103,12 @@ pub struct Program<'a> {
 }
 
 impl<'a> Program<'a> {
+    pub fn load_b(bdl: &'a mut BufferDataLoader) -> Result<Self> {
+        let mut program = ffi::program_load_b(bdl.inner.as_mut().unwrap());
+        let program = to_result(&mut program)?;
+        Ok(Self { inner: program, _marker: PhantomData })
+    }
+
     pub fn load(fdl: &'a mut FileDataLoader) -> Result<Self> {
         let mut program = ffi::program_load(fdl.inner.as_mut().unwrap());
         let program = to_result(&mut program)?;
