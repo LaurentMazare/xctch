@@ -53,6 +53,14 @@ std::unique_ptr<ResultProgram> program_load(util::FileDataLoader& reader) {
   return std::make_unique<ResultProgram>(Program::load(&reader));
 }
 
+std::unique_ptr<util::BufferDataLoader> buffer_data_loader_new(const void* data, size_t len) {
+  return std::make_unique<util::BufferDataLoader>(util::BufferDataLoader(data, len));
+}
+
+std::unique_ptr<ResultProgram> program_load_b(util::BufferDataLoader& reader) {
+  return std::make_unique<ResultProgram>(Program::load(&reader));
+}
+
 std::unique_ptr<MemoryManager> program_memory_manager_for_method(MethodMeta const& method_meta) {
   std::vector<std::unique_ptr<uint8_t[]>> *planned_buffers = new std::vector<std::unique_ptr<uint8_t[]>>(); // Owns the memory
   std::vector<torch::executor::Span<uint8_t>> *planned_spans = new std::vector<torch::executor::Span<uint8_t>>();

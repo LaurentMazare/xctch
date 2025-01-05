@@ -62,6 +62,7 @@ pub mod ffi {
         fn evalue_str_ptr(e: &EValue) -> *const c_char;
 
         fn program_load(loader: Pin<&mut FileDataLoader>) -> UniquePtr<ResultProgram>;
+        fn program_load_b(loader: Pin<&mut BufferDataLoader>) -> UniquePtr<ResultProgram>;
         fn program_memory_manager_for_method(m: &MethodMeta) -> UniquePtr<MemoryManager>;
         fn program_load_method(
             p: &Program,
@@ -82,6 +83,13 @@ pub mod ffi {
         #[namespace = "torch::executor::util"]
         pub type FileDataLoader;
         fn file_data_loader_from(path: &CxxString) -> UniquePtr<ResultFileDataLoader>;
+
+        #[namespace = "torch::executor::util"]
+        pub type BufferDataLoader;
+        unsafe fn buffer_data_loader_new(
+            data: *const c_void,
+            l: usize,
+        ) -> UniquePtr<BufferDataLoader>;
 
         pub type ResultMethodMeta;
         fn ok(self: &ResultMethodMeta) -> bool;

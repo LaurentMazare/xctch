@@ -4,6 +4,7 @@
 #include <executorch/runtime/core/portable_type/tensor.h>
 #include <executorch/runtime/executor/method.h>
 #include <executorch/runtime/executor/program.h>
+#include <executorch/extension/data_loader/buffer_data_loader.h>
 #include <executorch/extension/data_loader/file_data_loader.h>
 #include <executorch/extension/memory_allocator/malloc_memory_allocator.h>
 #include <memory>
@@ -30,6 +31,8 @@ std::unique_ptr<util::FileDataLoader> file_data_loader_result_get(ResultFileData
 int64_t i64_result_get(ResultI64 &v);
 
 std::unique_ptr<ResultProgram> program_load(util::FileDataLoader &);
+std::unique_ptr<util::BufferDataLoader> buffer_data_loader_new(const void* data, size_t len);
+std::unique_ptr<ResultProgram> program_load_b(util::BufferDataLoader &);
 std::unique_ptr<ResultFileDataLoader> file_data_loader_from(std::string const&);
 std::unique_ptr<MemoryManager> program_memory_manager_for_method(MethodMeta const& method_meta);
 std::unique_ptr<ResultMethod> program_load_method(Program const& p, std::string const& name, MemoryManager &mgr);
