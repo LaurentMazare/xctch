@@ -3,7 +3,7 @@ pub mod program;
 pub mod tensor;
 
 pub use method::Method;
-pub use program::Program;
+pub use program::{Program, ProgramBuffer, ProgramFile};
 pub use scalar_type::{ScalarType, WithScalarType};
 pub use tensor::Tensor;
 pub use xctch_sys::safe::{EValue, EValueRef, TensorRef};
