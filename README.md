@@ -30,6 +30,26 @@ curl https://raw.githubusercontent.com/karpathy/nanoGPT/master/model.py -o scrip
 python scripts/nanogpt/export_nanogpt.py
 ```
 
+### Cross-Compilation for Android
+
+From the `executorch` directory:
+```bash
+rm -Rf cmake-android-out
+cmake . \
+  -DEXECUTORCH_BUILD_EXTENSION_MODULE=ON \
+  -DEXECUTORCH_BUILD_EXTENSION_TENSOR=ON \
+  -DEXECUTORCH_BUILD_EXTENSION_DATA_LOADER=ON \
+  -DEXECUTORCH_ENABLE_LOGGING=ON \
+  -DEXECUTORCH_BUILD_KERNELS_OPTIMIZED=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DEXECUTORCH_BUILD_XNNPACK=ON \
+  -DCMAKE_INSTALL_PREFIX=cmake-android-out \
+  -DCMAKE_TOOLCHAIN_FILE=$HOME/Android/Sdk/ndk/26.2.11394342/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a \
+  -Bcmake-android-out
+cmake --build cmake-android-out -j16 --target install --config Release
+```
+
 ### Common Issues
 
 ```
