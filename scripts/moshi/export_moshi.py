@@ -86,7 +86,7 @@ def _is_safetensors(path: Path | str) -> bool:
     return Path(path).suffix in (".safetensors", ".sft", ".sfts")
 
 
-def get_moshi_lm(filename, device='cpu') -> LMModel:
+def get_moshi_lm(filename, strict, device='cpu') -> LMModel:
     # dtype = torch.bfloat16
     dtype = torch.float
     model = LMModel(
@@ -97,7 +97,7 @@ def get_moshi_lm(filename, device='cpu') -> LMModel:
     model.eval()
     if filename is not None:
         if _is_safetensors(filename):
-            load_model(model, filename, strict=False)
+            load_model(model, filename, strict=strict)
         else:
             pkg = torch.load(
                 filename,
@@ -117,12 +117,13 @@ class LM(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--moshi-weight", type=str, help="Path to a local checkpoint file for Moshi.")
-    parser.add_argument("--quantize", action="store_true")
+    parser.add_argument("--moshi-weights", type=str, help="Path to a local checkpoint file for Moshi.")
+    parser.add_argument("--quantized", action="store_true")
+    parser.add_argument("--relaxed", action="store_true")
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 
-    model = get_moshi_lm(args.moshi_weight, args.device)
+    model = get_moshi_lm(args.moshi_weights, not args.relaxed, args.device)
     model = LM(model)
     print("moshi model loaded")
 
@@ -132,7 +133,7 @@ def main():
     print(out_codes.shape)
 
 
-    if args.quantize:
+    if args.quantized:
         print("exporting to aten and edge")
         aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,)).module()
         print("quantizing")
