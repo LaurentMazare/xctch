@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 from torch import nn
 from torch.export import export, ExportedProgram, Dim
+from executorch import exir
 from executorch.exir import EdgeProgramManager, ExecutorchBackendConfig, to_edge
 
 from moshi.models.lm import LMModel
@@ -79,8 +80,8 @@ def _is_safetensors(path: Path | str) -> bool:
 
 
 def get_moshi_lm(filename, device='cpu') -> LMModel:
-    # dtype = torch.bfloat16
-    dtype = torch.float
+    dtype = torch.bfloat16
+    # dtype = torch.float
     model = LMModel(
         device=device,
         dtype=dtype,
@@ -124,7 +125,12 @@ def main():
 
     print("exporting to aten and edge")
     aten_dialect: ExportedProgram = export(model, (sample_codes,))
-    edge_program: EdgeProgramManager = to_edge(aten_dialect)
+    edge_program: EdgeProgramManager = to_edge(
+        aten_dialect,
+        # When exporting the bfloat16 version, the ir validity check fails.
+        # Maybe related: https://github.com/pytorch/executorch/issues/6685
+        compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
+    )
 
     print("exporting to executorch")
     executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
