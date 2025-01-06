@@ -2,9 +2,15 @@ import argparse
 from pathlib import Path
 import torch
 from torch import nn
-from torch.export import export, ExportedProgram, Dim
+from torch.export import export, export_for_training, ExportedProgram, Dim
 from executorch import exir
-from executorch.exir import EdgeProgramManager, ExecutorchBackendConfig, to_edge
+from executorch.exir import EdgeProgramManager, ExecutorchBackendConfig, to_edge, to_edge_transform_and_lower
+from executorch.backends.xnnpack.partition.xnnpack_partitioner import XnnpackPartitioner
+from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
+from torch.ao.quantization.quantizer.xnnpack_quantizer import (
+    get_symmetric_quantization_config,
+    XNNPACKQuantizer,
+)
 
 from moshi.models.lm import LMModel
 
@@ -80,8 +86,8 @@ def _is_safetensors(path: Path | str) -> bool:
 
 
 def get_moshi_lm(filename, device='cpu') -> LMModel:
-    dtype = torch.bfloat16
-    # dtype = torch.float
+    # dtype = torch.bfloat16
+    dtype = torch.float
     model = LMModel(
         device=device,
         dtype=dtype,
@@ -124,12 +130,20 @@ def main():
     print(out_codes.shape)
 
     print("exporting to aten and edge")
-    aten_dialect: ExportedProgram = export(model, (sample_codes,))
-    edge_program: EdgeProgramManager = to_edge(
+    aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,)).module()
+
+    print("quantizing")
+    quantizer = XNNPACKQuantizer().set_global(get_symmetric_quantization_config())
+    prepared_graph = prepare_pt2e(aten_dialect, quantizer)
+    converted_graph = convert_pt2e(prepared_graph)
+    aten_dialect: ExportedProgram = export(converted_graph, (sample_codes,))
+
+    edge_program: EdgeProgramManager = to_edge_transform_and_lower(
         aten_dialect,
+        partitioner=[XnnpackPartitioner()],
         # When exporting the bfloat16 version, the ir validity check fails.
         # Maybe related: https://github.com/pytorch/executorch/issues/6685
-        compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
+        # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
     )
 
     print("exporting to executorch")
