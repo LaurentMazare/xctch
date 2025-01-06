@@ -6,7 +6,7 @@ fn main() {
     let exec_dir = std::env::var(ENV_VAR).expect(&format!("{ENV_VAR} is not set"));
     let include_dir =
         std::env::var(ENV_VAR_INCLUDE).unwrap_or_else(|_| format!("{exec_dir}/include"));
-    let lib_dir = std::env::var(ENV_VAR_INCLUDE).unwrap_or_else(|_| format!("{exec_dir}/lib"));
+    let lib_dir = std::env::var(ENV_VAR_LIB).unwrap_or_else(|_| format!("{exec_dir}/lib"));
 
     cxx_build::bridge("src/cxx_ffi.rs")
         .include(include_dir)
