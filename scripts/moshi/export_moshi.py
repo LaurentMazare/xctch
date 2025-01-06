@@ -11,6 +11,7 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
     get_symmetric_quantization_config,
     XNNPACKQuantizer,
 )
+from safetensors.torch import load_model
 
 from moshi.models.lm import LMModel
 
@@ -66,7 +67,7 @@ _lm_kwargs300m = {
     "depformer_dim": 1024,
     "depformer_dim_feedforward": int(4.125 * 1024),
     "depformer_num_heads": 16,
-    "depformer_num_layers": 6,
+    "depformer_num_layers": 0,
     "depformer_causal": True,
     "depformer_layer_scale": None,
     "depformer_multi_linear": True,
@@ -96,7 +97,7 @@ def get_moshi_lm(filename, device='cpu') -> LMModel:
     model.eval()
     if filename is not None:
         if _is_safetensors(filename):
-            load_model(model, filename)
+            load_model(model, filename, strict=False)
         else:
             pkg = torch.load(
                 filename,
@@ -117,6 +118,7 @@ class LM(nn.Module):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--moshi-weight", type=str, help="Path to a local checkpoint file for Moshi.")
+    parser.add_argument("--quantize", action="store_true")
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 
@@ -129,22 +131,27 @@ def main():
     out_codes = model(sample_codes)
     print(out_codes.shape)
 
-    print("exporting to aten and edge")
-    aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,)).module()
 
-    print("quantizing")
-    quantizer = XNNPACKQuantizer().set_global(get_symmetric_quantization_config())
-    prepared_graph = prepare_pt2e(aten_dialect, quantizer)
-    converted_graph = convert_pt2e(prepared_graph)
-    aten_dialect: ExportedProgram = export(converted_graph, (sample_codes,))
+    if args.quantize:
+        print("exporting to aten and edge")
+        aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,)).module()
+        print("quantizing")
+        quantizer = XNNPACKQuantizer().set_global(get_symmetric_quantization_config())
+        prepared_graph = prepare_pt2e(aten_dialect, quantizer)
+        converted_graph = convert_pt2e(prepared_graph)
+        aten_dialect: ExportedProgram = export(converted_graph, (sample_codes,))
 
-    edge_program: EdgeProgramManager = to_edge_transform_and_lower(
-        aten_dialect,
-        partitioner=[XnnpackPartitioner()],
-        # When exporting the bfloat16 version, the ir validity check fails.
-        # Maybe related: https://github.com/pytorch/executorch/issues/6685
-        # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
-    )
+        edge_program: EdgeProgramManager = to_edge_transform_and_lower(
+            aten_dialect,
+            partitioner=[XnnpackPartitioner()],
+            # When exporting the bfloat16 version, the ir validity check fails.
+            # Maybe related: https://github.com/pytorch/executorch/issues/6685
+            # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
+        )
+    else:
+        print("exporting to aten and edge")
+        aten_dialect: ExportedProgram = export(model, (sample_codes,))
+        edge_program: EdgeProgramManager = to_edge(aten_dialect)
 
     print("exporting to executorch")
     executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
