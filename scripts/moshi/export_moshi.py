@@ -136,7 +136,14 @@ def main():
         print("exporting to aten and edge")
         aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,)).module()
         print("quantizing")
-        quantizer = XNNPACKQuantizer().set_global(get_symmetric_quantization_config())
+        linear_config = get_symmetric_quantization_config(
+            is_per_channel=False,
+            is_dynamic=False,
+        )
+        # We only enable quantization for the linear layers. Otherwise the embedding layers
+        # (ScaledEmbedding) seem to only return zeros.
+        quantizer = XNNPACKQuantizer()
+        quantizer.set_module_type(torch.nn.functional.linear, linear_config)
         prepared_graph = prepare_pt2e(aten_dialect, quantizer)
         converted_graph = convert_pt2e(prepared_graph)
         aten_dialect: ExportedProgram = export(converted_graph, (sample_codes,))
