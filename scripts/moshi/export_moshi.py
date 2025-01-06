@@ -95,6 +95,7 @@ def get_moshi_lm(filename, strict, device='cpu') -> LMModel:
         **_lm_kwargs,
     ).to(device=device, dtype=dtype)
     model.eval()
+    model.streaming_forever(1);
     if filename is not None:
         if _is_safetensors(filename):
             load_model(model, filename, strict=strict)
@@ -131,6 +132,14 @@ def main():
     sample_codes = torch.zeros((1, 17, 1), dtype=torch.int64).to(args.device)
     out_codes = model(sample_codes)
     print(out_codes.shape)
+    print(out_codes[0, 0, 0, :20])
+    out_codes = model(sample_codes)
+    print(out_codes.shape)
+    print(out_codes[0, 0, 0, :20])
+    out_codes = model(sample_codes)
+    print(out_codes.shape)
+    print(out_codes[0, 0, 0, :20])
+    model._lm_model.reset_streaming()
 
 
     if args.quantized:
