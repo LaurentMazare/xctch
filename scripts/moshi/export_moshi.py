@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import time
 import torch
 from torch import nn
 from torch.export import export, export_for_training, ExportedProgram, Dim
@@ -130,15 +131,12 @@ def main():
 
     print("running the model")
     sample_codes = torch.zeros((1, 17, 1), dtype=torch.int64).to(args.device)
-    out_codes = model(sample_codes)
-    print(out_codes.shape)
-    print(out_codes[0, 0, 0, :20])
-    out_codes = model(sample_codes)
-    print(out_codes.shape)
-    print(out_codes[0, 0, 0, :20])
-    out_codes = model(sample_codes)
-    print(out_codes.shape)
-    print(out_codes[0, 0, 0, :20])
+    for i in range(5):
+        start_time = time.time()
+        out_codes = model(sample_codes)
+        dt = time.time() - start_time
+        print(out_codes[0, 0, 0, :20])
+        print(f"step {i} shape: {out_codes.shape} dt: {1000 * dt:.0f}ms")
     model._lm_model.reset_streaming()
 
 
