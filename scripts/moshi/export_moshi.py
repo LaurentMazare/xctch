@@ -150,8 +150,7 @@ def main():
         )
         # We only enable quantization for the linear layers. Otherwise the embedding layers
         # (ScaledEmbedding) seem to only return zeros.
-        quantizer = XNNPACKQuantizer()
-        quantizer.set_module_type(torch.nn.functional.linear, linear_config)
+        quantizer = XNNPACKQuantizer().set_global(linear_config)
         prepared_graph = prepare_pt2e(aten_dialect, quantizer)
         converted_graph = convert_pt2e(prepared_graph)
         aten_dialect: ExportedProgram = export(converted_graph, (sample_codes,))
@@ -165,8 +164,12 @@ def main():
         )
     else:
         print("exporting to aten and edge")
-        aten_dialect: ExportedProgram = export(model, (sample_codes,))
-        edge_program: EdgeProgramManager = to_edge(aten_dialect)
+        aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,))
+        edge_program: EdgeProgramManager = to_edge_transform_and_lower(
+            aten_dialect,
+            partitioner=[XnnpackPartitioner()],
+        )
+    print(edge_program.exported_program().graph)
 
     print("exporting to executorch")
     executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
