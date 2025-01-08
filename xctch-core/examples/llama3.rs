@@ -14,6 +14,9 @@ struct Cli {
 
     #[arg(long, value_name = "FILE", default_value = "scripts/llama3/vocab.json")]
     vocab: String,
+
+    #[arg(short, long, default_value = "false")]
+    verbose: bool,
 }
 
 struct Tokenizer {
@@ -51,7 +54,9 @@ fn main() -> Result<()> {
     for &token in tokens.iter() {
         print!("{}", tokenizer.token_str(token as usize));
     }
+    println!();
     for idx in 0..200 {
+        let start_time = std::time::Instant::now();
         let tokens_len = tokens.len();
         let mut tensor = xctch::Tensor::from_data_with_dims(vec![tokens[tokens_len - 1]], &[1, 1])?;
         let evalue = tensor.as_evalue();
@@ -80,8 +85,13 @@ fn main() -> Result<()> {
             let distr = rand::distributions::WeightedIndex::new(sm).map_err(E::wrap)?;
             distr.sample(&mut rng)
         };
-        print!("{}", tokenizer.token_str(token));
-        std::io::stdout().flush()?;
+        if !cli.verbose {
+            print!("{}", tokenizer.token_str(token));
+            std::io::stdout().flush()?;
+        } else {
+            let ms = start_time.elapsed().as_millis();
+            println!("{idx:4}    token {token:5} {:12}     {ms}ms", tokenizer.token_str(token));
+        }
         tokens.push(token as i64)
     }
     println!();
