@@ -17,6 +17,9 @@ struct Cli {
 
     #[arg(short, long, default_value = "false")]
     verbose: bool,
+
+    #[arg(long, default_value = "100")]
+    n: usize,
 }
 
 struct Tokenizer {
@@ -55,7 +58,7 @@ fn main() -> Result<()> {
         print!("{}", tokenizer.token_str(token as usize));
     }
     println!();
-    for idx in 0..200 {
+    for idx in 0..cli.n {
         let start_time = std::time::Instant::now();
         let tokens_len = tokens.len();
         let mut tensor = xctch::Tensor::from_data_with_dims(vec![tokens[tokens_len - 1]], &[1, 1])?;
