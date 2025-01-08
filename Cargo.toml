@@ -17,6 +17,7 @@ categories = ["science"]
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
+clap = { version = "4.5.24", features = ["derive"] }
 cxx = "1.0"
 cxx-build = "1.0"
 half = { version = "2.3.1", features = ["num-traits"] }

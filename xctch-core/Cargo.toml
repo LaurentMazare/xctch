@@ -16,6 +16,7 @@ xctch-sys = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
+clap = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
 serde = { workspace = true }

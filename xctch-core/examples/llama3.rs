@@ -6,6 +6,16 @@ use xctch::{Context, Error as E, Result};
 pub const TEMPERATURE: f32 = 0.6;
 pub const SEED: u64 = 4242424242424242;
 
+#[derive(clap::Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(long, value_name = "FILE", default_value = "llama3_2.pte")]
+    pte: String,
+
+    #[arg(long, value_name = "FILE", default_value = "scripts/llama3/vocab.json")]
+    vocab: String,
+}
+
 struct Tokenizer {
     vocab: HashMap<usize, String>,
 }
@@ -25,11 +35,13 @@ impl Tokenizer {
 
 fn main() -> Result<()> {
     xctch::et_pal_init();
-    let mut rng = rand::rngs::StdRng::seed_from_u64(SEED);
-    let vocab_path = "scripts/llama3/vocab.json";
-    let tokenizer = Tokenizer::load(vocab_path).map_err(|e| e.with_path(vocab_path))?;
 
-    let program = xctch::Program::from_file("llama3_2.pte")?;
+    let cli = <Cli as clap::Parser>::parse();
+
+    let mut rng = rand::rngs::StdRng::seed_from_u64(SEED);
+    let tokenizer = Tokenizer::load(&cli.vocab).map_err(|e| e.with_path(&cli.vocab))?;
+
+    let program = xctch::Program::from_file(&cli.pte)?;
     let mut method = program.method("forward")?;
     println!("loaded method, inputs {}, outputs {}", method.inputs_size(), method.outputs_size());
     for idx in 0..method.outputs_size() {
