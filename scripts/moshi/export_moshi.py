@@ -13,6 +13,7 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
     XNNPACKQuantizer,
 )
 from torch.nn.attention import SDPBackend
+from executorch.extension.export_util.utils import export_to_edge
 from safetensors.torch import load_model
 
 from moshi.models.lm import LMModel
@@ -89,8 +90,8 @@ def _is_safetensors(path: Path | str) -> bool:
 
 
 def get_moshi_lm(filename, strict, device='cpu') -> LMModel:
-    # dtype = torch.bfloat16
-    dtype = torch.float
+    dtype = torch.bfloat16
+    # dtype = torch.float
     model = LMModel(
         device=device,
         dtype=dtype,
@@ -116,7 +117,7 @@ class LM(nn.Module):
 
     def forward(self, x):
         _, logits = self._lm_model.forward_text(x)
-        return logits
+        return logits.to(dtype=torch.float)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -138,7 +139,7 @@ def main():
         start_time = time.time()
         out_codes = model(sample_codes)
         dt = time.time() - start_time
-        print(out_codes[0, 0, 0, :20])
+        # print(out_codes[0, 0, 0, :20])
         print(f"step {i} shape: {out_codes.shape} dt: {1000 * dt:.0f}ms")
     model._lm_model.reset_streaming()
 
@@ -165,21 +166,50 @@ def main():
             # Maybe related: https://github.com/pytorch/executorch/issues/6685
             # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
         )
-    else:
-        print("exporting to aten and edge")
-        aten_dialect: ExportedProgram = export_for_training(model, (sample_codes,))
-        edge_program: EdgeProgramManager = to_edge_transform_and_lower(
-            aten_dialect,
-            partitioner=[XnnpackPartitioner()],
+        print("exporting to executorch")
+        executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
+            ExecutorchBackendConfig(
+                passes=[],  # User-defined passes
+            )
         )
-    print(edge_program.exported_program().graph)
 
-    print("exporting to executorch")
-    executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
-        ExecutorchBackendConfig(
-            passes=[],  # User-defined passes
+    else:
+        from torch._export import capture_pre_autograd_graph
+        from executorch.backends.xnnpack._passes.convert_to_linear import ConvertToLinearPass
+        from executorch.exir.passes.quant_fusion_pass import QuantFusionPass
+        from executorch.exir.passes import MemoryPlanningPass
+        from executorch.exir.passes.sym_shape_eval_pass import ConstraintBasedSymShapeEvalPass
+
+        print("exporting to aten and edge")
+        aten_dialect: ExportedProgram = capture_pre_autograd_graph(model, (sample_codes,))
+        edge_config = exir.EdgeCompileConfig(
+            _check_ir_validity=False,
+            _skip_type_promotion=False,
+            _skip_dim_order=True,
         )
-    )
+        edge_manager = export_to_edge(
+            aten_dialect,
+            (sample_codes,),
+            dynamic_shapes=None,
+            edge_constant_methods={},
+            edge_compile_config=edge_config,
+            verbose=False,
+        )
+        edge_manager = edge_manager.to_backend(XnnpackPartitioner())
+        executorch_program = edge_manager.to_executorch(
+            ExecutorchBackendConfig(
+                extract_delegate_segments=True,
+                passes=[
+                    # If there are Linear operations left in the graph, let's execute
+                    # them with the optimized op_linear rather than materializing a
+                    # transpose followed by a regular op_mm.
+                    ConvertToLinearPass(),
+                    QuantFusionPass(),
+                ],
+                memory_planning_pass=MemoryPlanningPass(alloc_graph_input=False),
+                sym_shape_eval_pass=ConstraintBasedSymShapeEvalPass(),
+            )
+        )
 
     filename = "moshi-lm.pte"
     print(f"writing {filename}")
