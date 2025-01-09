@@ -3,7 +3,7 @@ const ENV_VAR_INCLUDE: &str = "EXECUTORCH_DIR_INCLUDE";
 const ENV_VAR_LIB: &str = "EXECUTORCH_DIR_LIB";
 
 fn main() {
-    let exec_dir = std::env::var(ENV_VAR).expect(&format!("{ENV_VAR} is not set"));
+    let exec_dir = std::env::var(ENV_VAR).unwrap_or_else(|_| panic!("{ENV_VAR} is not set"));
     let include_dir =
         std::env::var(ENV_VAR_INCLUDE).unwrap_or_else(|_| format!("{exec_dir}/include"));
     let lib_dir = std::env::var(ENV_VAR_LIB).unwrap_or_else(|_| format!("{exec_dir}/lib"));
