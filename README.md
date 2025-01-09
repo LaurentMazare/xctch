@@ -1,6 +1,6 @@
 ## xctch
 
-Experimental bindings for executorch, currently compatible with version 0.4.
+Experimental bindings for executorch, currently compatible with version 0.5.
 
 ### Building executorch
 From the `executorch` directory:
