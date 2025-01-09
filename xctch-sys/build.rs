@@ -23,7 +23,8 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/cxx_api.cpp");
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:rustc-link-lib=static:+whole-archive=executorch");
-    println!("cargo:rustc-link-lib=static:+whole-archive=executorch_no_prim_ops");
+    println!("cargo:rustc-link-lib=static:+whole-archive=executorch_core");
+    println!("cargo:rustc-link-lib=static:+whole-archive=microkernels-prod");
     println!("cargo:rustc-link-lib=static:+whole-archive=extension_data_loader");
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_kernels");
     println!("cargo:rustc-link-lib=static:+whole-archive=eigen_blas");
