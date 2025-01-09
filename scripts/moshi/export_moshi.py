@@ -12,6 +12,7 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
     get_symmetric_quantization_config,
     XNNPACKQuantizer,
 )
+from torch.nn.attention import SDPBackend
 from safetensors.torch import load_model
 
 from moshi.models.lm import LMModel
@@ -125,6 +126,8 @@ def main():
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 
+    torch.manual_seed(42)
+
     model = get_moshi_lm(args.moshi_weights, not args.relaxed, args.device)
     model = LM(model)
     print("moshi model loaded")
@@ -183,6 +186,6 @@ def main():
     with open(filename, "wb") as file:
         file.write(executorch_program.buffer)
 
-with torch.no_grad():
+with torch.nn.attention.sdpa_kernel([SDPBackend.MATH]), torch.no_grad():
     main()
 
