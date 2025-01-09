@@ -18,7 +18,7 @@ struct Cli {
     #[arg(short, long, default_value = "false")]
     verbose: bool,
 
-    #[arg(long, default_value = "100")]
+    #[arg(short, long, default_value = "100")]
     n: usize,
 }
 

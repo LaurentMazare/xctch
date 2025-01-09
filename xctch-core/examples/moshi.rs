@@ -1,7 +1,22 @@
 use xctch::{Context, Result};
 
+#[derive(clap::Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(long, value_name = "FILE", default_value = "moshi-lm.pte")]
+    pte: String,
+
+    #[arg(short, long, default_value = "false")]
+    verbose: bool,
+
+    #[arg(short, long, default_value = "100")]
+    n: usize,
+}
+
 fn main() -> Result<()> {
     xctch::et_pal_init();
+
+    let cli = <Cli as clap::Parser>::parse();
 
     let args: Vec<String> = std::env::args().collect();
     let pte_file = if args.len() > 1 { &args[1] } else { "moshi-lm.pte" };
@@ -12,7 +27,7 @@ fn main() -> Result<()> {
     for idx in 0..method.outputs_size() {
         println!("  out {idx}: {:?}", method.get_output(idx).tag())
     }
-    for idx in 0..20 {
+    for idx in 0..cli.n {
         let start_time = std::time::Instant::now();
         let mut tensor = xctch::Tensor::from_data_with_dims(vec![0i64; 17], &[1, 17, 1])?;
         let evalue = tensor.as_evalue();
@@ -22,8 +37,11 @@ fn main() -> Result<()> {
         let logits = logits.as_tensor().context("not a tensor")?;
         let shape = logits.shape();
         let logits = logits.as_slice::<f32>().context("expected f32")?;
-        println!("  {:?}", &logits[..10]);
-        println!("out {idx} {shape:?} {:?}", start_time.elapsed());
+        if cli.verbose {
+            println!("  {:?}", &logits[..10]);
+        }
+        let ms = start_time.elapsed().as_millis();
+        println!("{idx:5} {shape:?} {ms}ms")
     }
     println!();
     Ok(())
