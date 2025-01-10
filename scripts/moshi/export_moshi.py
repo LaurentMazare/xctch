@@ -124,12 +124,15 @@ def main():
     parser.add_argument("--moshi-weights", type=str, help="Path to a local checkpoint file for Moshi.")
     parser.add_argument("--quantized", action="store_true")
     parser.add_argument("--relaxed", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 
     torch.manual_seed(42)
 
     model = get_moshi_lm(args.moshi_weights, not args.relaxed, args.device)
+    if args.verbose:
+        print(model)
     model = LM(model)
     print("moshi model loaded")
 
@@ -196,6 +199,8 @@ def main():
             verbose=False,
         )
         edge_manager = edge_manager.to_backend(XnnpackPartitioner())
+        if args.verbose:
+            print(edge_manager.exported_program().graph)
         executorch_program = edge_manager.to_executorch(
             ExecutorchBackendConfig(
                 extract_delegate_segments=True,
