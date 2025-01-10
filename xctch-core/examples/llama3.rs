@@ -20,6 +20,9 @@ struct Cli {
 
     #[arg(short, long, default_value = "100")]
     n: usize,
+
+    #[arg(long)]
+    etdump_file: Option<String>,
 }
 
 struct Tokenizer {
@@ -48,7 +51,7 @@ fn main() -> Result<()> {
     let tokenizer = Tokenizer::load(&cli.vocab).map_err(|e| e.with_path(&cli.vocab))?;
 
     let program = xctch::Program::from_file(&cli.pte)?;
-    let mut method = program.method("forward")?;
+    let mut method = program.method_d("forward")?;
     println!("loaded method, inputs {}, outputs {}", method.inputs_size(), method.outputs_size());
     for idx in 0..method.outputs_size() {
         println!("  out {idx}: {:?}", method.get_output(idx).tag())
@@ -98,5 +101,9 @@ fn main() -> Result<()> {
         tokens.push(token as i64)
     }
     println!();
+    if let Some(etdump_file) = cli.etdump_file.as_ref() {
+        let dump_data = method.dump_data();
+        std::fs::write(etdump_file, dump_data)?
+    }
     Ok(())
 }

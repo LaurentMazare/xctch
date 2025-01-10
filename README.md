@@ -16,6 +16,7 @@ cmake . \
   -DEXECUTORCH_BUILD_XNNPACK=ON \
   -DEXECUTORCH_BUILD_DEVTOOLS=ON \
   -DCMAKE_INSTALL_PREFIX=cmake-out \
+  -DEXECUTORCH_ENABLE_EVENT_TRACER=ON \
   -Bcmake-out
 cmake --build cmake-out -j16 --target install --config Release
 ```
@@ -48,6 +49,7 @@ cmake . \
   -DCMAKE_INSTALL_PREFIX=cmake-android-out \
   -DCMAKE_TOOLCHAIN_FILE=$HOME/Android/Sdk/ndk/26.2.11394342/build/cmake/android.toolchain.cmake \
   -DANDROID_ABI=arm64-v8a \
+  -DEXECUTORCH_ENABLE_EVENT_TRACER=ON \
   -Bcmake-android-out
 cmake --build cmake-android-out -j16 --target install --config Release
 ```
