@@ -2,7 +2,7 @@ pub mod method;
 pub mod program;
 pub mod tensor;
 
-pub use method::Method;
+pub use method::{Method, MethodD};
 pub use program::{Program, ProgramBuffer, ProgramFile};
 pub use scalar_type::{ScalarType, WithScalarType};
 pub use tensor::Tensor;

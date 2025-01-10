@@ -40,6 +40,13 @@ impl ProgramBuffer {
         let method = self.with_inner(|v| v.method(name, &mut mgr))?;
         Ok(crate::Method { method, meta, mgr })
     }
+
+    pub fn method_d(&self, name: &str) -> Result<crate::MethodD> {
+        let meta = self.with_inner(|v| v.method_meta(name))?;
+        let mut mgr = meta.memory_manager();
+        let method = self.with_inner(|v| v.method_d(name, &mut mgr))?;
+        Ok(crate::MethodD { method, meta, mgr })
+    }
 }
 
 #[ouroboros::self_referencing]
@@ -67,6 +74,13 @@ impl ProgramFile {
         let method = self.with_inner(|v| v.method(name, &mut mgr))?;
         Ok(crate::Method { method, meta, mgr })
     }
+
+    pub fn method_d(&self, name: &str) -> Result<crate::MethodD> {
+        let meta = self.with_inner(|v| v.method_meta(name))?;
+        let mut mgr = meta.memory_manager();
+        let method = self.with_inner(|v| v.method_d(name, &mut mgr))?;
+        Ok(crate::MethodD { method, meta, mgr })
+    }
 }
 
 pub enum Program {
@@ -89,6 +103,13 @@ impl Program {
         match self {
             Self::Buffer(s) => s.method(name),
             Self::File(s) => s.method(name),
+        }
+    }
+
+    pub fn method_d(&self, name: &str) -> Result<crate::MethodD> {
+        match self {
+            Self::Buffer(s) => s.method_d(name),
+            Self::File(s) => s.method_d(name),
         }
     }
 }
