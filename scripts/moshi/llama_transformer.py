@@ -136,10 +136,6 @@ class ModelArgs:
     # logits for all input tokens.)
     generate_full_logits: bool = False
     enable_dynamic_shape: bool = False  # export model with dynamic shape support
-    # A dictionary mapping from pruned token-id to original token-id
-    input_prune_map: Optional[Dict[int, int]] = None
-    # A dictionary mapping from pruned token-id to original token-id
-    output_prune_map: Optional[Dict[int, int]] = None
     rope_theta: Optional[float] = (
         None  # The official name to override self.rope_freq_base.
     )
@@ -494,6 +490,20 @@ class TransformerBlock(nn.Module):
         return out
 
 
+class Embedding(nn.Embedding):
+    def __init__(self, *args, zero_idx: int = -1, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert zero_idx < 0, "Please use negative values for the zero_idx."
+        self.zero_idx = zero_idx
+
+    def forward(self, input, *args, **kwargs):
+        is_zero = input == self.zero_idx
+        zero = torch.zeros(1, dtype=input.dtype, device=input.device)
+        input = input.clamp(min=0)
+        y = super().forward(input, *args, **kwargs)
+        y = torch.where(is_zero[..., None], zero, y)
+        return y
+
 class Transformer(nn.Module):
     def __init__(self, params: ModelArgs):
         super().__init__()
@@ -501,7 +511,7 @@ class Transformer(nn.Module):
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
 
-        self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
+        self.tok_embeddings = Embedding(params.vocab_size, params.dim)
         self.rope = Rope(params)
         self.layers = torch.nn.ModuleList()
         for layer_id in range(params.n_layers):
@@ -511,8 +521,6 @@ class Transformer(nn.Module):
         self.use_kv_cache = params.use_kv_cache
         self.generate_full_logits = params.generate_full_logits
         self.max_seq_len = params.max_seq_len
-        self.input_prune_map = params.input_prune_map
-        self.output_prune_map = params.output_prune_map
 
     def forward(
         self,
@@ -546,29 +554,6 @@ class Transformer(nn.Module):
         h = self.norm(h)
 
         logits = self.output(h)
-
-        if self.output_prune_map is not None:
-            # expand to original size so that downstream applications can use the logits as-is.
-            if self.generate_full_logits:
-                # (1, seq_len, pruned_size) -> (1, seq_len, original_size)
-                expanded_logits = torch.full(
-                    [logits.shape[0], logits.shape[1], self.vocab_size],
-                    float("-inf"),
-                    device=logits.device,
-                    dtype=logits.dtype,
-                )
-                expanded_logits[:, :, list(self.output_prune_map.values())] = logits
-            else:
-                # (1, pruned_size) -> (1, original_size)
-                expanded_logits = torch.full(
-                    [logits.shape[0], self.vocab_size],
-                    float("-inf"),
-                    device=logits.device,
-                    dtype=logits.dtype,
-                )
-                expanded_logits[:, list(self.output_prune_map.values())] = logits
-            logits = expanded_logits
-
         return logits
 
 from executorch.extension.export_util.utils import export_to_edge
