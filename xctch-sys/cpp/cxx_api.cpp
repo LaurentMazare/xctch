@@ -87,6 +87,10 @@ std::unique_ptr<ResultMethod> program_load_method(Program const& p, std::string 
   return std::make_unique<ResultMethod>(p.load_method(name.c_str(), &mgr));
 }
 
+std::unique_ptr<ResultMethod> program_load_method_d(Program const& p, std::string const& name, MemoryManager &mgr, executorch::etdump::ETDumpGen &e) {
+  return std::make_unique<ResultMethod>(p.load_method(name.c_str(), &mgr, &e));
+}
+
 std::unique_ptr<ResultMethodMeta> program_method_meta(Program const& p, std::string const& name) {
   return std::make_unique<ResultMethodMeta>(p.method_meta(name.c_str()));
 }
@@ -138,6 +142,17 @@ uint32_t method_set_input(Method& m, const EValue& e, size_t idx) {
 
 uint32_t method_set_output_data_ptr(Method& m, void* p, size_t sz, size_t idx) {
   return static_cast<uint32_t>(m.set_output_data_ptr(p, sz, idx));
+}
+
+std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_get_etdump_data(executorch::etdump::ETDumpGen & e) {
+  return std::make_unique<executorch::etdump::ETDumpResult>(e.get_etdump_data());
+}
+
+size_t et_dump_result_size(executorch::etdump::ETDumpResult const& e) {
+  return e.size;
+}
+const c_void* et_dump_result_buf(executorch::etdump::ETDumpResult const& e) {
+  return e.buf;
 }
 
 }

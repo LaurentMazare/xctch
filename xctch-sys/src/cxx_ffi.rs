@@ -69,6 +69,12 @@ pub mod ffi {
             name: &CxxString,
             mgr: Pin<&mut MemoryManager>,
         ) -> UniquePtr<ResultMethod>;
+        fn program_load_method_d(
+            p: &Program,
+            name: &CxxString,
+            mgr: Pin<&mut MemoryManager>,
+            e: Pin<&mut ETDumpGen>,
+        ) -> UniquePtr<ResultMethod>;
         fn program_method_meta(p: &Program, name: &CxxString) -> UniquePtr<ResultMethodMeta>;
         fn method_execute(m: Pin<&mut Method>) -> u32;
         fn method_set_input(m: Pin<&mut Method>, e: &EValue, idx: usize) -> u32;
@@ -112,6 +118,15 @@ pub mod ffi {
         pub type ResultI64;
         fn ok(self: &ResultI64) -> bool;
         fn i64_result_get(v: Pin<&mut ResultI64>) -> i64;
+
+        #[namespace = "executorch::etdump"]
+        pub type ETDumpGen;
+        fn et_dump_get_etdump_data(e: Pin<&mut ETDumpGen>) -> UniquePtr<ETDumpResult>;
+
+        #[namespace = "executorch::etdump"]
+        pub type ETDumpResult;
+        fn et_dump_result_size(e: &ETDumpResult) -> usize;
+        fn et_dump_result_buf(e: &ETDumpResult) -> *const c_void;
     }
 }
 

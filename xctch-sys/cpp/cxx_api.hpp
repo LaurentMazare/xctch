@@ -7,6 +7,7 @@
 #include <executorch/extension/data_loader/buffer_data_loader.h>
 #include <executorch/extension/data_loader/file_data_loader.h>
 #include <executorch/extension/memory_allocator/malloc_memory_allocator.h>
+#include <executorch/devtools/etdump/etdump_flatcc.h>
 #include <memory>
 
 namespace torch {
@@ -36,6 +37,7 @@ std::unique_ptr<ResultProgram> program_load_b(util::BufferDataLoader &);
 std::unique_ptr<ResultFileDataLoader> file_data_loader_from(std::string const&);
 std::unique_ptr<MemoryManager> program_memory_manager_for_method(MethodMeta const& method_meta);
 std::unique_ptr<ResultMethod> program_load_method(Program const& p, std::string const& name, MemoryManager &mgr);
+std::unique_ptr<ResultMethod> program_load_method_d(Program const& p, std::string const& name, MemoryManager &mgr, executorch::etdump::ETDumpGen &e);
 std::unique_ptr<ResultMethodMeta> program_method_meta(Program const&, std::string const&);
 std::unique_ptr<ResultI64> method_meta_memory_planned_buffer_size(MethodMeta const&, size_t);
 std::unique_ptr<Tensor> evalue_to_tensor_move(EValue&);
@@ -49,5 +51,10 @@ std::unique_ptr<EValue> evalue_from_int(int64_t);
 uint32_t method_execute(Method&);
 uint32_t method_set_input(Method&, const EValue&, size_t);
 uint32_t method_set_output_data_ptr(Method&, void*, size_t, size_t);
+
+std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_get_etdump_data(executorch::etdump::ETDumpGen &);
+
+size_t et_dump_result_size(executorch::etdump::ETDumpResult const&);
+const c_void* et_dump_result_buf(executorch::etdump::ETDumpResult const&);
 }
 }
