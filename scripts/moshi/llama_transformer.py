@@ -18,123 +18,36 @@ import torch.nn.functional as F
 from torch import nn
 
 
-# ======================== Stock Implementation ========================
-
-
 def precompute_freqs_cis(
     dim: int,
     end: int,
     theta: float = 10000.0,
 ):
     freqs = 1.0 / (
-        theta ** (torch.arange(0, dim, 2, device="cpu")[: (dim // 2)].float() / dim)
-    )
-    t = torch.arange(end, device=freqs.device)  # pyre-ignore
-    freqs = torch.outer(t, freqs).float()
-    freqs_cos = torch.cos(freqs)
-    freqs_sin = torch.sin(freqs)
-    return freqs_cos, freqs_sin
-
-
-def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor):
-    ndim = x.ndim
-    freqs_cis_ndim = freqs_cis.ndim
-    if freqs_cis_ndim == 3:
-        # freqs_cis: (seq_len, n_heads, head_dim // 2)
-        assert freqs_cis.shape == (x.shape[-3], x.shape[-2], x.shape[-1])
-        shape = [
-            d if (i == ndim - 3 or i == ndim - 2 or i == ndim - 1) else 1
-            for i, d in enumerate(x.shape)
-        ]
-    else:
-        # freqs_cis: (seq_len, head_dim // 2)
-        assert freqs_cis.shape == (x.shape[1], x.shape[-1])
-        shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
-    return freqs_cis.view(shape)
-
-
-def apply_rotary_emb(
-    xq: torch.Tensor, xk: torch.Tensor, freqs_cos: torch.Tensor, freqs_sin: torch.Tensor
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    xq_r, xq_i = xq.float().reshape(xq.shape[:-1] + (-1, 2)).unbind(-1)
-    xk_r, xk_i = xk.float().reshape(xk.shape[:-1] + (-1, 2)).unbind(-1)
-
-    freqs_cos = reshape_for_broadcast(freqs_cos, xq_r)
-    freqs_sin = reshape_for_broadcast(freqs_sin, xq_r)
-
-    xq_out_r = xq_r * freqs_cos - xq_i * freqs_sin
-    xq_out_i = xq_r * freqs_sin + xq_i * freqs_cos
-    xk_out_r = xk_r * freqs_cos - xk_i * freqs_sin
-    xk_out_i = xk_r * freqs_sin + xk_i * freqs_cos
-
-    xq_out = torch.stack([xq_out_r, xq_out_i], dim=-1).flatten(3)
-    xk_out = torch.stack([xk_out_r, xk_out_i], dim=-1).flatten(3)
-
-    return xq_out.type_as(xq), xk_out.type_as(xk)
-
-
-def apply_rotary_emb_to_k(
-    xk: torch.Tensor, freqs_cos: torch.Tensor, freqs_sin: torch.Tensor
-) -> torch.Tensor:
-    xk_r, xk_i = xk.float().reshape(xk.shape[:-1] + (-1, 2)).unbind(-1)
-
-    freqs_cos = reshape_for_broadcast(freqs_cos, xk_r)
-    freqs_sin = reshape_for_broadcast(freqs_sin, xk_r)
-
-    xk_out_r = xk_r * freqs_cos - xk_i * freqs_sin
-    xk_out_i = xk_r * freqs_sin + xk_i * freqs_cos
-
-    xk_out = torch.stack([xk_out_r, xk_out_i], dim=-1).flatten(3)
-
-    return xk_out.type_as(xk)
-
-
-class RotaryEmbedding(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(
-        self,
-        xq: torch.Tensor,
-        xk: torch.Tensor,
-        freqs_cos: torch.Tensor,
-        freqs_sin: torch.Tensor,
-    ):
-        xq_out, xk_out = apply_rotary_emb(xq, xk, freqs_cos, freqs_sin)
-        return xq_out, xk_out
-
-
-# ======================= HuggingFace Implementation ========================
-
-
-# Based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L77
-def hf_precompute_freqs_cis(dim: int, end: int, theta: float):
-    freqs = 1.0 / (
         theta
         ** (torch.arange(0, dim, 2, device="cpu", dtype=torch.int64).float() / dim)
     )
-    # pyre-ignore Undefined attribute [16]: `float` has no attribute `device`.
     t = torch.arange(end, device=freqs.device, dtype=torch.int64).type_as(
-        freqs  # pyre-ignore
+        freqs
     )
-    freqs = torch.outer(t, freqs).float()  # pyre-ignore
+    freqs = torch.outer(t, freqs).float()
     emb = torch.cat((freqs, freqs), dim=-1)
     freqs_cos = torch.cos(emb)
     freqs_sin = torch.sin(emb)
     return freqs_cos, freqs_sin
 
 
-# Based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L135
+
+
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""
-    x1 = x[..., : x.shape[-1] // 2]
-    x2 = x[..., x.shape[-1] // 2 :]
-    return torch.cat((-x2, x1), dim=-1)
+    x1 = x[..., 0::2]
+    x2 = x[..., 1::2]
+    return torch.stack((-x2, x1), dim=-1).flatten(-2)
 
 
-def hf_apply_rotary_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
+def apply_rotary_emb(q_, k_, cos, sin, unsqueeze_dim=1):
     """Applies Rotary Position Embedding to the query and key tensors.
-
     Args:
         q (`torch.Tensor`): The query tensor.
         k (`torch.Tensor`): The key tensor.
@@ -152,11 +65,33 @@ def hf_apply_rotary_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     Returns:
         `tuple(torch.Tensor)` comprising of the query and key tensors rotated using the Rotary Position Embedding.
     """
+    # Convert to float as executorch 0.5 does not yet support the neg operation on bfloat16 tensors.
+    q, k = q_.float(), k_.float()
     cos = cos.unsqueeze(unsqueeze_dim)
     sin = sin.unsqueeze(unsqueeze_dim)
+
+    # Interleave them instead of usual shape
+    cos = cos[..., : cos.shape[-1] // 2].repeat_interleave(2, dim=-1)
+    sin = sin[..., : sin.shape[-1] // 2].repeat_interleave(2, dim=-1)
+
     q_embed = (q * cos) + (rotate_half(q) * sin)
     k_embed = (k * cos) + (rotate_half(k) * sin)
-    return q_embed, k_embed
+
+    return q_embed.to(dtype=q_.dtype), k_embed.to(dtype=k_.dtype)
+
+class RotaryEmbedding(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(
+        self,
+        xq: torch.Tensor,
+        xk: torch.Tensor,
+        freqs_cos: torch.Tensor,
+        freqs_sin: torch.Tensor,
+    ):
+        xq_out, xk_out = apply_rotary_emb(xq, xk, freqs_cos, freqs_sin)
+        return xq_out, xk_out
 
 
 class HeliumRMSNorm(nn.Module):
@@ -247,8 +182,7 @@ class Rope(torch.nn.Module):
     def __init__(self, params: ModelArgs):
         super().__init__()
         self.params = params
-        self.precompute_freqs_cis = partial(precompute_freqs_cis)
-        freqs_cos, freqs_sin = self.precompute_freqs_cis(
+        freqs_cos, freqs_sin = precompute_freqs_cis(
             self.params.head_dim,
             (
                 self.params.max_seq_len  # Normal llama2.
