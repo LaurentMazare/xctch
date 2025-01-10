@@ -144,7 +144,11 @@ uint32_t method_set_output_data_ptr(Method& m, void* p, size_t sz, size_t idx) {
   return static_cast<uint32_t>(m.set_output_data_ptr(p, sz, idx));
 }
 
-std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_get_etdump_data(executorch::etdump::ETDumpGen & e) {
+std::unique_ptr<executorch::etdump::ETDumpGen> et_dump_gen_new() {
+  return std::make_unique<executorch::etdump::ETDumpGen>(executorch::etdump::ETDumpGen());
+}
+
+std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_gen_get_etdump_data(executorch::etdump::ETDumpGen & e) {
   return std::make_unique<executorch::etdump::ETDumpResult>(e.get_etdump_data());
 }
 

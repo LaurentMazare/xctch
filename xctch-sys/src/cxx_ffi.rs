@@ -121,7 +121,8 @@ pub mod ffi {
 
         #[namespace = "executorch::etdump"]
         pub type ETDumpGen;
-        fn et_dump_get_etdump_data(e: Pin<&mut ETDumpGen>) -> UniquePtr<ETDumpResult>;
+        fn et_dump_gen_new() -> UniquePtr<ETDumpGen>;
+        fn et_dump_gen_get_etdump_data(e: Pin<&mut ETDumpGen>) -> UniquePtr<ETDumpResult>;
 
         #[namespace = "executorch::etdump"]
         pub type ETDumpResult;

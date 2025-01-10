@@ -122,6 +122,19 @@ impl<'a> Program<'a> {
         Ok(Method { inner: method, _marker: PhantomData })
     }
 
+    pub fn method_d(&self, name: &str, mgr: &mut MemoryManager) -> Result<MethodD> {
+        cxx::let_cxx_string!(name = name);
+        let mut et_dump = ffi::et_dump_gen_new();
+        let mut method = ffi::program_load_method_d(
+            &self.inner,
+            &name,
+            mgr.inner.as_mut().unwrap(),
+            et_dump.as_mut().unwrap(),
+        );
+        let method = to_result(&mut method)?;
+        Ok(MethodD { inner: method, et_dump, _marker: PhantomData })
+    }
+
     pub fn method_meta(&self, name: &str) -> Result<MethodMeta> {
         cxx::let_cxx_string!(name = name);
         let mut method_meta = ffi::program_method_meta(&self.inner, &name);
@@ -144,7 +157,8 @@ impl MethodMeta<'_> {
 
 pub struct MethodD<'a> {
     inner: cxx::UniquePtr<ffi::Method>,
-    et_dump: ffi::ETDumpGen,
+    #[allow(unused)]
+    et_dump: cxx::UniquePtr<ffi::ETDumpGen>,
     _marker: PhantomData<&'a ()>,
 }
 

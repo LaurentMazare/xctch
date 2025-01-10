@@ -52,7 +52,8 @@ uint32_t method_execute(Method&);
 uint32_t method_set_input(Method&, const EValue&, size_t);
 uint32_t method_set_output_data_ptr(Method&, void*, size_t, size_t);
 
-std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_get_etdump_data(executorch::etdump::ETDumpGen &);
+std::unique_ptr<executorch::etdump::ETDumpGen> et_dump_gen_new();
+std::unique_ptr<executorch::etdump::ETDumpResult> et_dump_gen_get_etdump_data(executorch::etdump::ETDumpGen &);
 
 size_t et_dump_result_size(executorch::etdump::ETDumpResult const&);
 const c_void* et_dump_result_buf(executorch::etdump::ETDumpResult const&);
