@@ -31,6 +31,10 @@ fn main() {
     println!("cargo:rustc-link-lib=static:+whole-archive=optimized_native_cpu_ops_lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=optimized_kernels");
 
+    // etdump
+    println!("cargo:rustc-link-lib=static:+whole-archive=flatccrt");
+    println!("cargo:rustc-link-lib=static:+whole-archive=etdump");
+
     // XNNPACK
     println!("cargo:rustc-link-lib=static:+whole-archive=xnnpack_backend");
     println!("cargo:rustc-link-lib=static:+whole-archive=XNNPACK");
