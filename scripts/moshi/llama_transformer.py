@@ -125,16 +125,12 @@ class ModelArgs:
     multiple_of: int = 256  # make SwiGLU hidden layer size multiple of large power of 2
     ffn_dim_multiplier: Optional[float] = None
     norm_eps: float = 1e-5
-    max_batch_size: int = 32
+    max_batch_size: int = 1
     max_seq_len: int = 2048
     use_kv_cache: bool = False  # Use key/value cache
     use_sdpa_with_kv_cache_op: bool = (
         False  # Use custom sdpa op that updates kv cache in-place
     )
-    # Generate logits for all inputs. When it's True, it would take big memory usage
-    # at runtime. Enable it only necessary (e.g., use perplexity tools that requires
-    # logits for all input tokens.)
-    generate_full_logits: bool = False
     enable_dynamic_shape: bool = False  # export model with dynamic shape support
     rope_theta: Optional[float] = (
         None  # The official name to override self.rope_freq_base.
@@ -519,7 +515,6 @@ class Transformer(nn.Module):
         self.norm = HeliumRMSNorm(params.dim, eps=params.norm_eps)
         self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
         self.use_kv_cache = params.use_kv_cache
-        self.generate_full_logits = params.generate_full_logits
         self.max_seq_len = params.max_seq_len
 
     def forward(
@@ -528,14 +523,8 @@ class Transformer(nn.Module):
         input_pos: Optional[
             torch.LongTensor
         ] = None,  # Scalar tensor indicating size of window of the caches
-        h: Optional[torch.FloatTensor] = None,  # embeddings
     ) -> torch.Tensor:
-        if (tokens is None) ^ (h is not None):
-            raise ValueError(
-                "You cannot specify both tokens and h at the same time, and must specify either one"
-            )
-        if tokens is not None and h is None:
-            h = self.tok_embeddings(tokens)
+        h = self.tok_embeddings(tokens)
         seqlen = h.shape[1]
         freqs_cos, freqs_sin = self.rope.get_freqs(input_pos, seqlen)
 
@@ -547,12 +536,8 @@ class Transformer(nn.Module):
                 input_pos,
             )
 
-        if not self.generate_full_logits:
-            # Only the last logit is used for the new generated token
-            h = h[:, -1, :]
-
+        h = h[:, -1, :]
         h = self.norm(h)
-
         logits = self.output(h)
         return logits
 
@@ -590,6 +575,7 @@ def main():
         rope_theta=100000,
         vocab_size=48000,
         max_seq_len=750,
+        use_kv_cache = True,
     )
     model = Transformer(params).to(dtype=torch.bfloat16)
     if args.verbose:
@@ -598,16 +584,18 @@ def main():
 
     print("running the model")
     sample_codes = torch.zeros((1, 1), dtype=torch.int64).to(args.device)
+    input_pos = torch.zeros(1, dtype=torch.int64).to(args.device)
+    sample_args = sample_codes, input_pos
     for i in range(5):
         start_time = time.time()
-        out_codes = model(sample_codes)
+        out_codes = model(sample_codes, input_pos)
         dt = time.time() - start_time
         # print(out_codes[0, 0, 0, :20])
         print(f"step {i} shape: {out_codes.shape} dt: {1000 * dt:.0f}ms")
 
 
     print("exporting to aten and edge")
-    aten_dialect: ExportedProgram = capture_pre_autograd_graph(model, (sample_codes,))
+    aten_dialect: ExportedProgram = capture_pre_autograd_graph(model, sample_args)
     edge_config = exir.EdgeCompileConfig(
         _check_ir_validity=False,
         _skip_type_promotion=False,
@@ -615,7 +603,7 @@ def main():
     )
     edge_manager = export_to_edge(
         aten_dialect,
-        (sample_codes,),
+        sample_args,
         dynamic_shapes=None,
         edge_constant_methods={},
         edge_compile_config=edge_config,
