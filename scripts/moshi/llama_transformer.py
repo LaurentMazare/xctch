@@ -1,11 +1,9 @@
-# @lint-ignore-every LICENSELINT
+#
+# Part of these files come from the original executorch repo.
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-#
 # Llama 2 is licensed under the LLAMA 2 Community License,
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved.
-
-# Please refer to README.md in the same folder for more information.
 
 import argparse
 
@@ -161,52 +159,18 @@ def hf_apply_rotary_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     return q_embed, k_embed
 
 
-class RMSNorm(torch.nn.Module):
-    def __init__(self, dim: int, eps: float = 1e-6):
-        """
-        Initialize the RMSNorm normalization layer.
-
-        Args:
-            dim (int): The dimension of the input tensor.
-            eps (float, optional): A small value added to the denominator for numerical stability. Default is 1e-6.
-
-        Attributes:
-            eps (float): A small value added to the denominator for numerical stability.
-            weight (nn.Parameter): Learnable scaling parameter.
-
-        """
+class HeliumRMSNorm(nn.Module):
+    def __init__(self, hidden_size, eps=1e-6):
         super().__init__()
-        self.dim = dim
-        self.eps = eps
-        self.weight = nn.Parameter(torch.ones(dim))
+        self.weight = nn.Parameter(torch.ones(hidden_size))
+        self.variance_epsilon = eps
 
-    def _norm(self, x):
-        """
-        Apply the RMSNorm normalization to the input tensor.
-
-        Args:
-            x (torch.Tensor): The input tensor.
-
-        Returns:
-            torch.Tensor: The normalized tensor.
-
-        """
-        return x * torch.rsqrt((x * x).mean(-1, keepdim=True) + self.eps)
-
-    def forward(self, x):
-        """
-        Forward pass through the RMSNorm layer.
-
-        Args:
-            x (torch.Tensor): The input tensor.
-
-        Returns:
-            torch.Tensor: The output tensor after applying RMSNorm.
-
-        """
-        output = self._norm(x.float()).type_as(x)
-        return output * self.weight
-
+    def forward(self, hidden_states):
+        input_dtype = hidden_states.dtype
+        hidden_states = hidden_states.to(torch.float32)
+        variance = hidden_states.pow(2).mean(-1, keepdim=True)
+        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
+        return (self.weight.to(torch.float32) * hidden_states).to(input_dtype)
 
 def find_multiple(n: int, k: int) -> int:
     if n % k == 0:
@@ -583,8 +547,8 @@ class TransformerBlock(nn.Module):
         self.head_dim = args.head_dim
         self.attention = Attention(args, layer_id, rope)
         self.feed_forward = FeedForward(args)
-        self.attention_norm = RMSNorm(args.dim, eps=args.norm_eps)
-        self.ffn_norm = RMSNorm(args.dim, eps=args.norm_eps)
+        self.attention_norm = HeliumRMSNorm(args.dim, eps=args.norm_eps)
+        self.ffn_norm = HeliumRMSNorm(args.dim, eps=args.norm_eps)
 
     def forward(self, x, freqs_cos, freqs_sin, input_pos=None):  # x: 1xN
         h = self.attention.forward(
@@ -608,7 +572,7 @@ class Transformer(nn.Module):
         self.layers = torch.nn.ModuleList()
         for layer_id in range(params.n_layers):
             self.layers.append(TransformerBlock(layer_id, params, self.rope))
-        self.norm = RMSNorm(params.dim, eps=params.norm_eps)
+        self.norm = HeliumRMSNorm(params.dim, eps=params.norm_eps)
         self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
         self.use_kv_cache = params.use_kv_cache
         self.generate_full_logits = params.generate_full_logits
