@@ -23,44 +23,15 @@ from torch import nn
 # ======================== Stock Implementation ========================
 
 
-def apply_scaling(freqs: torch.Tensor, scale_factor: int):
-    # Values obtained from grid search
-    low_freq_factor = 1
-    high_freq_factor = 4
-    old_context_len = 8192  # original llama3 length
-
-    low_freq_wavelen = old_context_len / low_freq_factor
-    high_freq_wavelen = old_context_len / high_freq_factor
-    new_freqs = []
-    for freq in freqs:
-        wavelen = 2 * math.pi / freq
-        if wavelen < high_freq_wavelen:
-            new_freqs.append(freq)
-        elif wavelen > low_freq_wavelen:
-            new_freqs.append(freq / scale_factor)
-        else:
-            assert low_freq_wavelen != high_freq_wavelen
-            smooth = (old_context_len / wavelen - low_freq_factor) / (
-                high_freq_factor - low_freq_factor
-            )
-            new_freqs.append((1 - smooth) * freq / scale_factor + smooth * freq)
-    return torch.tensor(new_freqs, dtype=freqs.dtype, device=freqs.device)
-
-
 def precompute_freqs_cis(
     dim: int,
     end: int,
     theta: float = 10000.0,
-    use_scaled: bool = False,
-    scale_factor: Optional[int] = None,
 ):
     freqs = 1.0 / (
         theta ** (torch.arange(0, dim, 2, device="cpu")[: (dim // 2)].float() / dim)
     )
     t = torch.arange(end, device=freqs.device)  # pyre-ignore
-    if use_scaled:
-        assert scale_factor is not None
-        freqs = apply_scaling(freqs, scale_factor)  # pyre-ignore
     freqs = torch.outer(t, freqs).float()
     freqs_cos = torch.cos(freqs)
     freqs_sin = torch.sin(freqs)
@@ -190,29 +161,6 @@ def hf_apply_rotary_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     return q_embed, k_embed
 
 
-def hf_apply_rotary_emb_to_k(k, cos, sin, position_ids=None, unsqueeze_dim=1):
-    """Applies Rotary Position Embedding to the key tensors.
-
-    Args:
-        k (`torch.Tensor`): The key tensor.
-        cos (`torch.Tensor`): The cosine part of the rotary embedding.
-        sin (`torch.Tensor`): The sine part of the rotary embedding.
-        position_ids (`torch.Tensor`, *optional*):
-            Deprecated and unused.
-        unsqueeze_dim (`int`, *optional*, defaults to 1):
-            The 'unsqueeze_dim' argument specifies the dimension along which to unsqueeze cos[position_ids] and
-            sin[position_ids] so that they can be properly broadcasted to the dimensions of k. For example, note
-            that cos[position_ids] and sin[position_ids] have the shape [batch_size, seq_len, head_dim]. Then, if
-            k have the shape [batch_size, heads, seq_len, head_dim], then setting unsqueeze_dim=1 makes
-            cos[position_ids] and sin[position_ids] broadcastable to the shapes of k. Similarly, if k have
-            the shape [batch_size, seq_len, heads, head_dim], then set unsqueeze_dim=2.
-    Returns:
-        `torch.Tensor` the key tensor rotated using the Rotary Position Embedding.
-    """
-    cos = cos.unsqueeze(unsqueeze_dim)
-    sin = sin.unsqueeze(unsqueeze_dim)
-    k_embed = (k * cos) + (rotate_half(k) * sin)
-    return k_embed
 class RMSNorm(torch.nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
         """
@@ -293,13 +241,10 @@ class ModelArgs:
     input_prune_map: Optional[Dict[int, int]] = None
     # A dictionary mapping from pruned token-id to original token-id
     output_prune_map: Optional[Dict[int, int]] = None
-    use_hf_rope: bool = False  # Use HuggingFace's RoPE implementation
     rope_theta: Optional[float] = (
         None  # The official name to override self.rope_freq_base.
     )
     rope_freq_base: float = 10000.0  # The base frequency for RoPE. Keep it for BC.
-    use_scaled_rope: bool = False  # Use scaled RoPE, introduced in llama3.1.
-    rope_scale_factor: int = 8
     # Additional Model Metadata needed at runtime
     bos_idx: int = 1
     eos_idx: int = 3
@@ -338,14 +283,7 @@ class Rope(torch.nn.Module):
     def __init__(self, params: ModelArgs):
         super().__init__()
         self.params = params
-        if self.params.use_hf_rope:
-            self.precompute_freqs_cis = hf_precompute_freqs_cis
-        else:
-            self.precompute_freqs_cis = partial(
-                precompute_freqs_cis,
-                use_scaled=self.params.use_scaled_rope,
-                scale_factor=self.params.rope_scale_factor,
-            )
+        self.precompute_freqs_cis = partial(precompute_freqs_cis)
         freqs_cos, freqs_sin = self.precompute_freqs_cis(
             self.params.head_dim,
             (
@@ -357,10 +295,7 @@ class Rope(torch.nn.Module):
         )
         self.register_buffer("freqs_cos", freqs_cos, persistent=False)
         self.register_buffer("freqs_sin", freqs_sin, persistent=False)
-        if self.params.use_hf_rope:
-            self.apply_rotary_emb = hf_apply_rotary_emb
-        else:
-            self.apply_rotary_emb = RotaryEmbedding()
+        self.apply_rotary_emb = RotaryEmbedding()
 
     def forward(
         self,
