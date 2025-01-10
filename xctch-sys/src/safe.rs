@@ -225,6 +225,14 @@ impl MethodD<'_> {
         let evalue = self.inner.get_output(idx);
         EValueRef { inner: evalue }
     }
+
+    // TODO: Should this consume the method so that execute cannot be called anymore?
+    pub fn dump_data(&mut self) -> Vec<u8> {
+        let data = ffi::et_dump_gen_get_etdump_data(self.et_dump.as_mut().unwrap());
+        let buf = ffi::et_dump_result_buf(data.as_ref().unwrap());
+        let len = ffi::et_dump_result_size(data.as_ref().unwrap());
+        unsafe { std::slice::from_raw_parts(buf as *const u8, len).to_vec() }
+    }
 }
 
 pub struct MemoryManager {
