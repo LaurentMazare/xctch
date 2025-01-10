@@ -760,15 +760,18 @@ def main():
 
     torch.manual_seed(42)
 
+    # Config similar to moshi 300m
     params = ModelArgs(
-        head_dim=64,
-        hidden_dim=2048,
+        dim=1024,
+        head_dim=128,
+        hidden_dim=4096,
         n_layers=16,
-        n_heads=32,
+        n_heads=8,
         n_kv_heads=8,
-        norm_eps=1e-5,
-        rope_theta=500000,
-        vocab_size=128256,
+        norm_eps=1e-8,
+        rope_theta=100000,
+        vocab_size=48000,
+        max_seq_len=750,
     )
     model = Transformer(params).to(dtype=torch.bfloat16)
     if args.verbose:
