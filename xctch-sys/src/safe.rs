@@ -142,12 +142,48 @@ impl MethodMeta<'_> {
     }
 }
 
+pub struct MethodD<'a> {
+    inner: cxx::UniquePtr<ffi::Method>,
+    et_dump: ffi::ETDumpGen,
+    _marker: PhantomData<&'a ()>,
+}
+
 pub struct Method<'a> {
     inner: cxx::UniquePtr<ffi::Method>,
     _marker: PhantomData<&'a ()>,
 }
 
 impl Method<'_> {
+    pub fn inputs_size(&self) -> usize {
+        self.inner.inputs_size()
+    }
+
+    pub fn outputs_size(&self) -> usize {
+        self.inner.outputs_size()
+    }
+
+    /// # Safety
+    ///
+    /// The inputs that have been added via `set_input` must be still alive.
+    pub unsafe fn execute(&mut self) -> Result<()> {
+        let err = ffi::method_execute(self.inner.as_mut().unwrap());
+        crate::error::from_ffi_err(err)?;
+        Ok(())
+    }
+
+    pub fn set_input(&mut self, evalue: &EValue, idx: usize) -> Result<()> {
+        let err = ffi::method_set_input(self.inner.as_mut().unwrap(), &evalue.inner, idx);
+        crate::error::from_ffi_err(err)?;
+        Ok(())
+    }
+
+    pub fn get_output(&self, idx: usize) -> EValueRef<'_> {
+        let evalue = self.inner.get_output(idx);
+        EValueRef { inner: evalue }
+    }
+}
+
+impl MethodD<'_> {
     pub fn inputs_size(&self) -> usize {
         self.inner.inputs_size()
     }
