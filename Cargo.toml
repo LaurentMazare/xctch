@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "xctch-core",
+    "xctch-moshi",
     "xctch-sys",
 ]
 resolver = "2"
@@ -17,6 +18,9 @@ categories = ["science"]
 
 [workspace.dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
+candle = { version = "0.8.2", package = "candle-core" }
+candle-nn = "0.8.2"
+candle-transformers = "0.8.2"
 clap = { version = "4.5", features = ["derive"] }
 cxx = "1.0"
 cxx-build = "1.0"
@@ -29,4 +33,5 @@ rand_distr = "0.4.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0.7"
+xctch = { path = "xctch-core", version = "0.4.0" }
 xctch-sys = { path = "xctch-sys", version = "0.4.0" }

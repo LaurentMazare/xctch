@@ -1,0 +1,21 @@
+[package]
+name = "xctch-moshi"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+candle = { workspace = true }
+xctch = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
