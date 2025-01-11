@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import copy
 import time
 import torch
 from torch import nn
@@ -14,6 +15,7 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
 )
 from torch.nn.attention import SDPBackend
 from executorch.extension.export_util.utils import export_to_edge
+from executorch.devtools import generate_etrecord
 from safetensors.torch import load_model
 
 from moshi.models.lm import LMModel
@@ -169,6 +171,7 @@ def main():
             # Maybe related: https://github.com/pytorch/executorch/issues/6685
             # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
         )
+
         print("exporting to executorch")
         executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
             ExecutorchBackendConfig(
@@ -201,6 +204,8 @@ def main():
         edge_manager = edge_manager.to_backend(XnnpackPartitioner())
         if args.verbose:
             print(edge_manager.exported_program().graph)
+
+        edge_manager_copy = copy.deepcopy(edge_manager)
         executorch_program = edge_manager.to_executorch(
             ExecutorchBackendConfig(
                 extract_delegate_segments=True,
@@ -215,6 +220,9 @@ def main():
                 sym_shape_eval_pass=ConstraintBasedSymShapeEvalPass(),
             )
         )
+        etrecord_path = "etrecord.bin"
+        generate_etrecord(etrecord_path, edge_manager_copy, executorch_program)
+
 
     filename = "moshi-lm.pte"
     print(f"writing {filename}")
