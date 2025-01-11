@@ -10,12 +10,17 @@ license.workspace = true
 
 [dependencies]
 candle = { workspace = true }
+candle-nn = { workspace = true }
+candle-transformers = { workspace = true }
 xctch = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+hf-hub = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
