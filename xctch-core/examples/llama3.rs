@@ -22,7 +22,7 @@ struct Cli {
     n: usize,
 
     #[arg(long)]
-    etdump_file: Option<String>,
+    etdump: Option<String>,
 }
 
 struct Tokenizer {
@@ -101,7 +101,7 @@ fn main() -> Result<()> {
         tokens.push(token as i64)
     }
     println!();
-    if let Some(etdump_file) = cli.etdump_file.as_ref() {
+    if let Some(etdump_file) = cli.etdump.as_ref() {
         let dump_data = method.dump_data();
         std::fs::write(etdump_file, dump_data)?
     }

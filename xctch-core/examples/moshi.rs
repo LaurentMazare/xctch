@@ -11,6 +11,9 @@ struct Cli {
 
     #[arg(short, long, default_value = "100")]
     n: usize,
+
+    #[arg(long)]
+    etdump: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -18,11 +21,10 @@ fn main() -> Result<()> {
 
     let cli = <Cli as clap::Parser>::parse();
 
-    let args: Vec<String> = std::env::args().collect();
-    let pte_file = if args.len() > 1 { &args[1] } else { "moshi-lm.pte" };
+    let pte_file = &cli.pte;
     println!("loading model file {pte_file}");
     let program = xctch::Program::from_file(pte_file)?;
-    let mut method = program.method("forward")?;
+    let mut method = program.method_d("forward")?;
     println!("loaded method, inputs {}, outputs {}", method.inputs_size(), method.outputs_size());
     for idx in 0..method.outputs_size() {
         println!("  out {idx}: {:?}", method.get_output(idx).tag())
@@ -44,5 +46,9 @@ fn main() -> Result<()> {
         println!("{idx:5} {shape:?} {ms}ms")
     }
     println!();
+    if let Some(etdump_file) = cli.etdump.as_ref() {
+        let dump_data = method.dump_data();
+        std::fs::write(etdump_file, dump_data)?
+    }
     Ok(())
 }
