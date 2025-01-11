@@ -6,6 +6,7 @@
 # Copyright (c) Meta Platforms, Inc. All Rights Reserved.
 
 import argparse
+import copy
 
 from dataclasses import dataclass
 from functools import partial
@@ -542,6 +543,7 @@ class Transformer(nn.Module):
         return logits
 
 from executorch.extension.export_util.utils import export_to_edge
+from executorch.devtools import generate_etrecord
 from torch.nn.attention import SDPBackend
 from torch._export import capture_pre_autograd_graph
 from executorch import exir
@@ -612,6 +614,7 @@ def main():
     edge_manager = edge_manager.to_backend(XnnpackPartitioner())
     if args.verbose:
         print(edge_manager.exported_program().graph)
+    edge_manager_copy = copy.deepcopy(edge_manager)
     executorch_program = edge_manager.to_executorch(
         ExecutorchBackendConfig(
             extract_delegate_segments=True,
@@ -627,6 +630,8 @@ def main():
         )
     )
 
+    etrecord_path = "etrecord.bin"
+    generate_etrecord(etrecord_path, edge_manager_copy, executorch_program)
     filename = "llama-lm.pte"
     print(f"writing {filename}")
     with open(filename, "wb") as file:

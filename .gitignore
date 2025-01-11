@@ -24,3 +24,4 @@ moshi*.pte
 streaming*.pte
 *.etdump
 etrecord.bin
+*.etbin
