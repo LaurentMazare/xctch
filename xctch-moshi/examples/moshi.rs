@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use candle::{IndexOp, Tensor};
 use candle_transformers::models::mimi;
 use std::sync::{Arc, Mutex};
@@ -10,9 +10,6 @@ const BRIA_CODES: &[u8] = include_bytes!("../../assets/bria.safetensors");
 struct Cli {
     #[arg(long, value_name = "FILE", default_value = "moshi-lm.pte")]
     pte: String,
-
-    #[arg(short, long, default_value = "false")]
-    verbose: bool,
 
     #[arg(long)]
     etdump: Option<String>,
@@ -101,11 +98,40 @@ fn main() -> Result<()> {
         None => anyhow::bail!("cannot find codes"),
     };
     let len = codes.dim(candle::D::Minus1)?;
+    let mut last_token = 48000i64;
+    {
+        let mut tensor = vec![2048i64; 17];
+        tensor[0] = last_token;
+        let mut tensor = xctch::Tensor::from_data_with_dims(tensor, &[1, 17, 1])?;
+        let evalue = tensor.as_evalue();
+        method.set_input(&evalue, 0)?;
+        unsafe { method.execute()? };
+    }
     for idx in 0..len {
         let start = std::time::Instant::now();
         let codes = codes.narrow(candle::D::Minus1, idx, 1)?;
+        let codes = codes.flatten_all()?.to_vec1::<u32>()?;
+        let mut tensor = vec![-1i64; 17];
+        for (i, c) in codes.iter().enumerate() {
+            tensor[i + 1] = *c as i64
+        }
+        if idx >= 25 {
+            tensor[0] = last_token
+        }
+        let mut tensor = xctch::Tensor::from_data_with_dims(tensor, &[1, 17, 1])?;
+        let evalue = tensor.as_evalue();
+        method.set_input(&evalue, 0)?;
+        unsafe { method.execute()? };
+        let logits = method.get_output(0);
+        let logits = logits.as_tensor().context("not a tensor")?;
+        let shape = logits.shape();
+        let logits = logits.as_slice::<f32>().context("expected f32")?;
+        if let Some((token, _)) = logits.iter().enumerate().max_by(|(_, a), (_, b)| a.total_cmp(b))
+        {
+            last_token = token as i64
+        }
         let ms = start.elapsed().as_millis();
-        tracing::info!(ms, shape = ?codes.shape(), "codes")
+        tracing::info!(ms, last_token, ?shape)
     }
     if let Some(etdump_file) = cli.etdump.as_ref() {
         let dump_data = method.dump_data();
