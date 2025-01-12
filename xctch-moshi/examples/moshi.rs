@@ -14,6 +14,10 @@ struct Cli {
     #[arg(long)]
     etdump: Option<String>,
 
+    /// The maximum number of steps to run for
+    #[arg(short, long)]
+    n: Option<usize>,
+
     #[arg(long)]
     tokenizer: Option<String>,
 }
@@ -120,6 +124,7 @@ fn main() -> Result<()> {
         None => anyhow::bail!("cannot find codes"),
     };
     let len = codes.dim(candle::D::Minus1)?;
+    let len = cli.n.map_or(len, |n| len.min(n));
     let mut last_token = 48000i64;
     {
         let mut tensor = vec![2048i64; 17];
