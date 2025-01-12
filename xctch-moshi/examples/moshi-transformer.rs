@@ -52,4 +52,3 @@ fn main() -> Result<()> {
     }
     Ok(())
 }
-
