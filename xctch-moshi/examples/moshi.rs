@@ -13,6 +13,27 @@ struct Cli {
 
     #[arg(long)]
     etdump: Option<String>,
+
+    #[arg(long)]
+    tokenizer: Option<String>,
+}
+
+fn load_vocab<P: AsRef<std::path::Path>>(
+    path: Option<P>,
+) -> Result<std::collections::HashMap<i64, String>> {
+    let file = match path {
+        None => {
+            let api = hf_hub::api::sync::Api::new()?;
+            let api = api.model("lmz/moshi-swift".to_string());
+            tracing::info!("retrieving tokenizer");
+            let path = api.get("tokenizer_spm_48k_multi6_2.json")?;
+            std::fs::File::open(path)?
+        }
+        Some(path) => std::fs::File::open(path)?,
+    };
+    let file = std::io::BufReader::new(file);
+    let data: std::collections::HashMap<i64, String> = serde_json::from_reader(file)?;
+    Ok(data)
 }
 
 fn _make_mimi() -> Result<mimi::encodec::Encodec> {
@@ -80,6 +101,7 @@ fn main() -> Result<()> {
 
     let cli = <Cli as clap::Parser>::parse();
 
+    let vocab = load_vocab(cli.tokenizer.as_ref())?;
     let pte_file = &cli.pte;
     tracing::info!("loading model file {pte_file}");
     let program = xctch::Program::from_file(pte_file)?;
@@ -124,14 +146,14 @@ fn main() -> Result<()> {
         unsafe { method.execute()? };
         let logits = method.get_output(0);
         let logits = logits.as_tensor().context("not a tensor")?;
-        let shape = logits.shape();
         let logits = logits.as_slice::<f32>().context("expected f32")?;
         if let Some((token, _)) = logits.iter().enumerate().max_by(|(_, a), (_, b)| a.total_cmp(b))
         {
             last_token = token as i64
         }
         let ms = start.elapsed().as_millis();
-        tracing::info!(ms, last_token, ?shape)
+        let token = vocab.get(&last_token);
+        tracing::info!(idx, ms, last_token, ?token)
     }
     if let Some(etdump_file) = cli.etdump.as_ref() {
         let dump_data = method.dump_data();
