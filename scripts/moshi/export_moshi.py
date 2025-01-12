@@ -16,6 +16,7 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
 from torch.nn.attention import SDPBackend
 from executorch.extension.export_util.utils import export_to_edge
 from executorch.devtools import generate_etrecord
+from safetensors import safe_open
 from safetensors.torch import load_model
 
 from moshi.models.lm import LMModel
@@ -56,7 +57,7 @@ _lm_kwargs300m = {
     "dim": 1024,
     "text_card": 48000,
     "existing_text_padding_id": 3,
-    "n_q": 16,
+    "n_q": 32,
     "dep_q": 0,
     "card": 2048,
     "num_heads": 8,
@@ -81,7 +82,7 @@ _lm_kwargs300m = {
     "depformer_gating": "silu",
     "depformer_pos_emb": "none",
     "depformer_weights_per_step": True,
-    "delays": [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+    "delays": [0] * 33,
 }
 
 
@@ -121,12 +122,39 @@ class LM(nn.Module):
         _, logits = self._lm_model.forward_text(x)
         return logits.to(dtype=torch.float)
 
+def run_sample(model, sample_file, device):
+    with safe_open(sample_file, framework="pt", device=device) as fobj:
+        codes = fobj.get_tensor("codes").to(dtype=torch.int64)
+        print(codes.shape, codes.dtype)
+
+    _, codebooks, seqlen = codes.shape
+
+    init_codes = [_lm_kwargs["text_card"]] + [_lm_kwargs["card"]] * _lm_kwargs["n_q"]
+    init_codes = torch.tensor(init_codes, dtype=torch.int64, device=device)[None, :, None]
+    print(init_codes.shape)
+    _ = model(init_codes)
+
+    last_token = -1
+    for step in range(seqlen):
+        text_token = -1
+        if step >= 25:
+            text_token = last_token
+        text_codes = torch.tensor([[[text_token]]], dtype=torch.int64, device=device)
+        step_codes = codes[:, :, step:step+1]
+        pad_codes = -torch.ones((1, _lm_kwargs["n_q"] - codebooks, 1), dtype=torch.int64, device=device)
+        in_codes = torch.cat([text_codes, step_codes, pad_codes], dim=1)
+        logits = model(in_codes)
+        last_token = torch.argmax(logits, -1).item()
+        print(step, last_token)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--moshi-weights", type=str, help="Path to a local checkpoint file for Moshi.")
     parser.add_argument("--quantized", action="store_true")
     parser.add_argument("--relaxed", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--sample-file", type=str)
     parser.add_argument("--device", type=str, default="cpu")
     args = parser.parse_args()
 
@@ -140,6 +168,8 @@ def main():
 
     print("running the model")
     sample_codes = torch.zeros((1, 17, 1), dtype=torch.int64).to(args.device)
+    if args.sample_file is not None:
+        run_sample(model, args.sample_file, args.device)
     for i in range(5):
         start_time = time.time()
         out_codes = model(sample_codes)
