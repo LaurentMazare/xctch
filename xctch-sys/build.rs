@@ -27,6 +27,8 @@ fn main() {
     println!("cargo:rustc-link-lib=static:+whole-archive=microkernels-prod");
     println!("cargo:rustc-link-lib=static:+whole-archive=extension_data_loader");
     println!("cargo:rustc-link-lib=static:+whole-archive=portable_kernels");
+    println!("cargo:rustc-link-lib=static:+whole-archive=quantized_kernels");
+    println!("cargo:rustc-link-lib=static:+whole-archive=quantized_ops_lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=eigen_blas");
     println!("cargo:rustc-link-lib=static:+whole-archive=optimized_native_cpu_ops_lib");
     println!("cargo:rustc-link-lib=static:+whole-archive=optimized_kernels");
