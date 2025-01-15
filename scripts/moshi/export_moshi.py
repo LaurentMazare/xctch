@@ -13,6 +13,8 @@ from torch.ao.quantization.quantizer.xnnpack_quantizer import (
     get_symmetric_quantization_config,
     XNNPACKQuantizer,
 )
+import executorch.extension.pybindings.portable_lib
+import executorch.kernels.quantized
 from torch.nn.attention import SDPBackend
 from executorch.extension.export_util.utils import export_to_edge
 from executorch.devtools import generate_etrecord
@@ -57,7 +59,7 @@ _lm_kwargs300m = {
     "dim": 1024,
     "text_card": 48000,
     "existing_text_padding_id": 3,
-    "n_q": 32,
+    "n_q": 16,
     "dep_q": 0,
     "card": 2048,
     "num_heads": 8,
@@ -82,7 +84,7 @@ _lm_kwargs300m = {
     "depformer_gating": "silu",
     "depformer_pos_emb": "none",
     "depformer_weights_per_step": True,
-    "delays": [0] * 33,
+    "delays": [0] * 17,
 }
 
 
@@ -199,14 +201,11 @@ def main():
             partitioner=[XnnpackPartitioner()],
             # When exporting the bfloat16 version, the ir validity check fails.
             # Maybe related: https://github.com/pytorch/executorch/issues/6685
-            # compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
+            compile_config=exir.EdgeCompileConfig(_check_ir_validity=False)
         )
 
         print("exporting to executorch")
         executorch_program: exir.ExecutorchProgramManager = edge_program.to_executorch(
-            ExecutorchBackendConfig(
-                passes=[],  # User-defined passes
-            )
         )
 
     else:
